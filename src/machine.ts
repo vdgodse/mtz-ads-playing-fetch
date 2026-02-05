@@ -1,11 +1,11 @@
-import type { Config } from "./storage";
 import {
+  type Config,
   DEFAULT_CONFIG,
+  persistConfig,
+  persistHistory,
   sanitizeDurationMs,
   sanitizeHistorySize,
   sanitizeJitter,
-  saveConfig,
-  saveHistory,
   trimHistory,
 } from "./storage";
 
@@ -195,7 +195,7 @@ export function machineReducer(
             DEFAULT_CONFIG.durationMs,
           );
           const nextConfig = { ...state.context.config, durationMs: sanitized };
-          saveConfig(nextConfig);
+          persistConfig(nextConfig);
           return {
             ...state,
             context: {
@@ -227,7 +227,7 @@ export function machineReducer(
             DEFAULT_CONFIG.jitter,
           );
           const nextConfig = { ...state.context.config, jitter: sanitized };
-          saveConfig(nextConfig);
+          persistConfig(nextConfig);
           return {
             ...state,
             context: {
@@ -262,10 +262,10 @@ export function machineReducer(
             ...state.context.config,
             historySize: sanitized,
           };
-          saveConfig(nextConfig);
+          persistConfig(nextConfig);
 
           const trimmedHistory = trimHistory(state.context.history, sanitized);
-          saveHistory(trimmedHistory);
+          persistHistory(trimmedHistory);
 
           return {
             ...state,

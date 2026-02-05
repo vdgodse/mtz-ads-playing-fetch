@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 
-import type { MachineState } from "../machine";
-import { pickFinalLetter, saveHistory, trimHistory } from "../storage";
+import type { MachineEvent, MachineState } from "../machine";
+import { pickFinalLetter, persistHistory, trimHistory } from "../storage";
 import { randomFrom } from "../utils";
 import { useLatest } from "./useLatest";
 
@@ -13,11 +13,7 @@ interface UseRunningLoopParams {
   config: MachineState["context"]["config"];
   history: string[];
   setCurrentLetter: (letter: string) => void;
-  dispatch: (event: {
-    type: "RUN_FINISHED";
-    finalLetter: string;
-    nextHistory: string[];
-  }) => void;
+  dispatch: (event: MachineEvent) => void;
 }
 
 export function useRunningLoop({
@@ -61,7 +57,7 @@ export function useRunningLoop({
       setCurrentLetter(chosen);
 
       const nextHistory = trimHistory([...history, chosen], historySize);
-      saveHistory(nextHistory);
+      persistHistory(nextHistory);
 
       dispatch({ type: "RUN_FINISHED", finalLetter: chosen, nextHistory });
     }, delay);

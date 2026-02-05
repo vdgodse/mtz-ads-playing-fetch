@@ -15,7 +15,7 @@ export const DEFAULT_CONFIG: Config = {
 const CONFIG_KEY = "mtz-ads-playing-fetch:v1:config";
 const HISTORY_KEY = "mtz-ads-playing-fetch:v1:history";
 
-function safeGetItem(key: string): string | null {
+function getPersistentItem(key: string): string | null {
   try {
     return window.localStorage.getItem(key);
   } catch {
@@ -23,7 +23,7 @@ function safeGetItem(key: string): string | null {
   }
 }
 
-function safeSetItem(key: string, value: string): void {
+function persistItem(key: string, value: string): void {
   try {
     window.localStorage.setItem(key, value);
   } catch {
@@ -31,7 +31,7 @@ function safeSetItem(key: string, value: string): void {
   }
 }
 
-function safeRemoveItem(key: string): void {
+function removePersistentItem(key: string): void {
   try {
     window.localStorage.removeItem(key);
   } catch {
@@ -72,7 +72,7 @@ export function pickFinalLetter(
 }
 
 export function loadConfig(): Config {
-  const raw = safeGetItem(CONFIG_KEY);
+  const raw = getPersistentItem(CONFIG_KEY);
   if (!raw) return DEFAULT_CONFIG;
 
   try {
@@ -92,12 +92,12 @@ export function loadConfig(): Config {
   }
 }
 
-export function saveConfig(config: Config): void {
-  safeSetItem(CONFIG_KEY, JSON.stringify(config));
+export function persistConfig(config: Config): void {
+  persistItem(CONFIG_KEY, JSON.stringify(config));
 }
 
 export function loadHistory(): string[] {
-  const raw = safeGetItem(HISTORY_KEY);
+  const raw = getPersistentItem(HISTORY_KEY);
   if (!raw) return [];
 
   try {
@@ -113,13 +113,13 @@ export function loadHistory(): string[] {
   }
 }
 
-export function saveHistory(history: string[]): void {
-  safeSetItem(HISTORY_KEY, JSON.stringify(history));
+export function persistHistory(history: string[]): void {
+  persistItem(HISTORY_KEY, JSON.stringify(history));
 }
 
-export function resetStorage(): void {
-  safeRemoveItem(CONFIG_KEY);
-  safeRemoveItem(HISTORY_KEY);
+export function resetPersistentStorage(): void {
+  removePersistentItem(CONFIG_KEY);
+  removePersistentItem(HISTORY_KEY);
 }
 
 export function loadInitialState(): { config: Config; history: string[] } {
@@ -128,8 +128,8 @@ export function loadInitialState(): { config: Config; history: string[] } {
   const history = trimHistory(rawHistory, config.historySize);
 
   // Self-heal storage so it always contains sanitized values.
-  saveConfig(config);
-  saveHistory(history);
+  persistConfig(config);
+  persistHistory(history);
 
   return { config, history };
 }

@@ -5,7 +5,7 @@ import { useRunningLoop } from "./hooks/useRunningLoop";
 import { createInitialState, machineReducer } from "./machine";
 import { ReloadIcon } from "./ReloadIcon";
 import { Settings } from "./Settings";
-import { loadInitialState, resetStorage } from "./storage";
+import { loadInitialState, resetPersistentStorage } from "./storage";
 import { buttonStyle } from "./styles";
 import { randomFrom } from "./utils";
 
@@ -61,7 +61,7 @@ function App() {
 	}
 
 	function handleReset() {
-		resetStorage();
+		resetPersistentStorage();
 		setCurrentLetter(randomFrom(LETTERS));
 		dispatch({ type: "RESET" });
 	}
