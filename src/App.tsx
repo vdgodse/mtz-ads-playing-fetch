@@ -75,8 +75,10 @@ function App() {
 				padding: 24,
 				fontFamily:
 					"ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, Apple Color Emoji, Segoe UI Emoji",
-				background: "#0b1020",
 				color: "#e7e9ee",
+    			backgroundImage: "linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab)",
+    			animation: "gradientAnimation 12s ease infinite",
+    			backgroundSize: "400% 400%",
 			}}
 		>
 			<header

@@ -14,13 +14,13 @@ export function buttonStyle(
     cursor: disabled ? "not-allowed" : "pointer",
     fontWeight: 600,
     opacity: disabled ? 0.5 : 1,
+    outline: "white thin",
   };
 
   if (variant === "primary") {
     return {
       ...base,
-      border: "1px solid rgba(79, 166, 255, 0.45)",
-      background: "rgba(79, 166, 255, 0.18)",
+      border: "1px solid rgba(255, 255, 255, 0.45)",
     };
   }
 
@@ -28,7 +28,6 @@ export function buttonStyle(
     return {
       ...base,
       border: "1px solid rgba(255, 90, 90, 0.45)",
-      background: "rgba(255, 90, 90, 0.14)",
     };
   }
 
