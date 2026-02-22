@@ -62,10 +62,7 @@ export function trimHistory(history: string[], historySize: number): string[] {
   if (history.length <= historySize) return history;
   return history.slice(history.length - historySize);
 }
-export function pickFinalLetter(
-  allLetters: string[],
-  recentFinals: string[],
-): string {
+export function pickFinalLetter(allLetters: string[], recentFinals: string[]): string {
   const recentSet = new Set(recentFinals);
   const pool = allLetters.filter((l) => !recentSet.has(l));
   return randomFrom(pool.length > 0 ? pool : allLetters);
@@ -77,14 +74,8 @@ export function loadConfig(): Config {
 
   try {
     const parsed = JSON.parse(raw) as Partial<Config> | null;
-    const durationMs = sanitizeDurationMs(
-      parsed?.durationMs,
-      DEFAULT_CONFIG.durationMs,
-    );
-    const historySize = sanitizeHistorySize(
-      parsed?.historySize,
-      DEFAULT_CONFIG.historySize,
-    );
+    const durationMs = sanitizeDurationMs(parsed?.durationMs, DEFAULT_CONFIG.durationMs);
+    const historySize = sanitizeHistorySize(parsed?.historySize, DEFAULT_CONFIG.historySize);
     const jitter = sanitizeJitter(parsed?.jitter, DEFAULT_CONFIG.jitter);
     return { durationMs, jitter, historySize };
   } catch {

@@ -6,9 +6,9 @@ name: Build & deploy to GitHub Pages
 on:
   # Triggers the workflow on push or pull request events but only for the "main" branch
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -21,7 +21,7 @@ permissions:
 concurrency:
   group: pages
   cancel-in-progress: true
-  
+
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   # This workflow contains a single job called "build"
@@ -37,11 +37,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
+          cache: "npm"
       - run: |
           npm config set registry https://registry.npmjs.org
           npm ci
-          
+
       - run: npm run build
 
       - uses: actions/upload-pages-artifact@v3

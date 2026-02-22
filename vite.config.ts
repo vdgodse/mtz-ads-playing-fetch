@@ -6,10 +6,7 @@ import { defineConfig, type Plugin, type ResolvedConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { PurgeCSS } from "purgecss";
 
-async function collectFilesRecursive(
-  dirPath: string,
-  matcher: RegExp,
-): Promise<string[]> {
+async function collectFilesRecursive(dirPath: string, matcher: RegExp): Promise<string[]> {
   const entries = await fs.readdir(dirPath, { withFileTypes: true });
   const nested = await Promise.all(
     entries.map(async (entry) => {
@@ -63,8 +60,7 @@ function inlineCssIntoHtml(): Plugin {
 
       const base = resolved.base ?? "/";
 
-      const escapeRegExp = (value: string) =>
-        value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
       const hrefToCssPath = (href: string): string => {
         let relPath = href;
@@ -80,10 +76,7 @@ function inlineCssIntoHtml(): Plugin {
         /<link\s+[^>]*rel=["']stylesheet["'][^>]*href=["']([^"']+\.css(?:\?[^"']*)?)["'][^>]*>/gi;
       const stylesheetMatches = Array.from(html.matchAll(stylesheetTagRe));
 
-      const purgeContentFiles = await collectFilesRecursive(
-        outDir,
-        /\.(html|js)$/i,
-      );
+      const purgeContentFiles = await collectFilesRecursive(outDir, /\.(html|js)$/i);
 
       for (const match of stylesheetMatches) {
         const fullTag = match[0];
@@ -99,8 +92,7 @@ function inlineCssIntoHtml(): Plugin {
           const purgeResult = await new PurgeCSS().purge({
             content: purgeContentFiles,
             css: [{ raw: css }],
-            defaultExtractor: (content: string) =>
-              content.match(/[A-Za-z0-9-_:/]+/g) ?? [],
+            defaultExtractor: (content: string) => content.match(/[A-Za-z0-9-_:/]+/g) ?? [],
             safelist: {
               standard: [
                 // Keep common state classes often toggled dynamically.
@@ -169,6 +161,14 @@ function inlineCssIntoHtml(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [react(), inlineCssIntoHtml()],
+  plugins: [
+    react({
+      babel: {
+        // React Compiler ("React Forget") must run first in Babel plugins.
+        plugins: [["babel-plugin-react-compiler", { target: "18" }]],
+      },
+    }),
+    inlineCssIntoHtml(),
+  ],
   base: "/mtz-ads-playing-fetch/",
 });

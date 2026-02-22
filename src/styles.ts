@@ -34,9 +34,7 @@ export function buttonStyle(
   return base;
 }
 
-export function settingsToggleButtonStyle(
-  isHidden: boolean,
-): React.CSSProperties {
+export function settingsToggleButtonStyle(isHidden: boolean): React.CSSProperties {
   return {
     ...buttonStyle("secondary"),
     visibility: isHidden ? "hidden" : "visible",
@@ -51,8 +49,7 @@ export const appViewportShellStyle: React.CSSProperties = {
   fontFamily:
     "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, Apple Color Emoji, Segoe UI Emoji",
   color: "#e7e9ee",
-  backgroundImage:
-    "linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab)",
+  backgroundImage: "linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab)",
   animation: "gradientAnimation 16s linear infinite",
   backgroundSize: "400% 400%",
 };

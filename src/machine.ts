@@ -47,15 +47,11 @@ export type MachineEvent =
 const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
 function computeRunDelayMs(config: Config): number {
-  const jitterOffset =
-    Math.floor(Math.random() * (config.jitter * 2 + 1)) - config.jitter;
+  const jitterOffset = Math.floor(Math.random() * (config.jitter * 2 + 1)) - config.jitter;
   return Math.max(0, config.durationMs + jitterOffset);
 }
 
-export function createInitialState(
-  config: Config,
-  history: string[],
-): MachineState {
+export function createInitialState(config: Config, history: string[]): MachineState {
   return {
     mode: "idle",
     context: {
@@ -73,10 +69,7 @@ export function createInitialState(
   };
 }
 
-export function machineReducer(
-  state: MachineState,
-  event: MachineEvent,
-): MachineState {
+export function machineReducer(state: MachineState, event: MachineEvent): MachineState {
   switch (state.mode) {
     case "idle":
       switch (event.type) {
@@ -135,10 +128,7 @@ export function machineReducer(
           const { historySize } = state.context.config;
           const recentFinals = trimHistory(state.context.history, historySize);
           const chosen = pickFinalLetter(LETTERS, recentFinals);
-          const nextHistory = trimHistory(
-            [...state.context.history, chosen],
-            historySize,
-          );
+          const nextHistory = trimHistory([...state.context.history, chosen], historySize);
           persistHistory(nextHistory);
 
           return {
@@ -254,10 +244,7 @@ export function machineReducer(
           };
 
         case "COMMIT_JITTER": {
-          const sanitized = sanitizeJitter(
-            state.context.inputs.jitter,
-            DEFAULT_CONFIG.jitter,
-          );
+          const sanitized = sanitizeJitter(state.context.inputs.jitter, DEFAULT_CONFIG.jitter);
           const nextConfig = { ...state.context.config, jitter: sanitized };
           persistConfig(nextConfig);
           return {
