@@ -45,7 +45,7 @@ function SettingsBackdrop() {
         inset: 0,
         zIndex: 20,
         background: "rgba(0, 0, 0, 0.55)",
-        backdropFilter: "blur(2px)",
+        backdropFilter: "brightness(0.85)",
         border: "none",
         padding: 0,
         margin: 0,
