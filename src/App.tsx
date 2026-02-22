@@ -22,6 +22,7 @@ function App() {
 	const [currentLetter, setCurrentLetter] = useState(() => randomFrom(LETTERS));
 
 	const startButtonRef = useRef<HTMLButtonElement | null>(null);
+	const currentLetterRef = useRef<HTMLDivElement | null>(null);
 
 	// Focus Start button when entering idle mode
 	useEffect(() => {
@@ -36,6 +37,7 @@ function App() {
 		runToken: state.context.runToken,
 		config: state.context.config,
 		history: state.context.history,
+		letterRef: currentLetterRef,
 		setCurrentLetter,
 		dispatch,
 	});
@@ -119,9 +121,11 @@ function App() {
 							display: "grid",
 							placeItems: "center",
 							padding: "28px 12px",
+							contentVisibility: "auto",
 						}}
 					>
 						<div
+							ref={currentLetterRef}
 							style={{
 								fontSize: 320,
 								fontWeight: 800,

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, type RefObject } from "react";
 
 import type { MachineEvent, MachineState } from "../machine";
 import { pickFinalLetter, persistHistory, trimHistory } from "../storage";
@@ -12,6 +12,7 @@ interface UseRunningLoopParams {
   runToken: number;
   config: MachineState["context"]["config"];
   history: string[];
+  letterRef: RefObject<HTMLElement | null>;
   setCurrentLetter: (letter: string) => void;
   dispatch: (event: MachineEvent) => void;
 }
@@ -21,6 +22,7 @@ export function useRunningLoop({
   runToken,
   config,
   history,
+  letterRef,
   setCurrentLetter,
   dispatch,
 }: UseRunningLoopParams) {
@@ -35,7 +37,10 @@ export function useRunningLoop({
 
     const tick = () => {
       if (runTokenRef.current !== myToken) return;
-      setCurrentLetter(randomFrom(LETTERS));
+      const next = randomFrom(LETTERS);
+      if (letterRef.current) {
+        letterRef.current.textContent = next;
+      }
       rafId = requestAnimationFrame(tick);
     };
 
@@ -54,6 +59,9 @@ export function useRunningLoop({
       const recentFinals = trimHistory(history, historySize);
       const chosen = pickFinalLetter(LETTERS, recentFinals);
 
+      if (letterRef.current) {
+        letterRef.current.textContent = chosen;
+      }
       setCurrentLetter(chosen);
 
       const nextHistory = trimHistory([...history, chosen], historySize);
@@ -71,6 +79,7 @@ export function useRunningLoop({
     runToken,
     config,
     history,
+    letterRef,
     setCurrentLetter,
     dispatch,
     runTokenRef,
