@@ -1,6 +1,7 @@
 import {
   type Config,
   DEFAULT_CONFIG,
+  pickFinalLetter,
   persistConfig,
   persistHistory,
   sanitizeDurationMs,
@@ -14,6 +15,8 @@ export type Mode = "idle" | "running" | "settings";
 export type MachineContext = {
   config: Config;
   history: string[];
+  lastFinalLetter: string | null;
+  runDelayMs: number;
   inputs: {
     duration: string;
     jitter: string;
@@ -33,13 +36,21 @@ export type MachineEvent =
   | { type: "OPEN_SETTINGS" }
   | { type: "CLOSE_SETTINGS" }
   | { type: "RESET" }
-  | { type: "RUN_FINISHED"; finalLetter: string; nextHistory: string[] }
+  | { type: "RUN_FINISHED" }
   | { type: "CHANGE_DURATION_INPUT"; value: string }
   | { type: "COMMIT_DURATION" }
   | { type: "CHANGE_JITTER_INPUT"; value: string }
   | { type: "COMMIT_JITTER" }
   | { type: "CHANGE_HISTORY_SIZE_INPUT"; value: string }
   | { type: "COMMIT_HISTORY_SIZE" };
+
+const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+
+function computeRunDelayMs(config: Config): number {
+  const jitterOffset =
+    Math.floor(Math.random() * (config.jitter * 2 + 1)) - config.jitter;
+  return Math.max(0, config.durationMs + jitterOffset);
+}
 
 export function createInitialState(
   config: Config,
@@ -50,6 +61,8 @@ export function createInitialState(
     context: {
       config,
       history,
+      lastFinalLetter: null,
+      runDelayMs: 0,
       inputs: {
         duration: String(config.durationMs),
         jitter: String(config.jitter),
@@ -73,6 +86,7 @@ export function machineReducer(
             mode: "running",
             context: {
               ...state.context,
+              runDelayMs: computeRunDelayMs(state.context.config),
               runToken: state.context.runToken + 1,
             },
           };
@@ -89,6 +103,8 @@ export function machineReducer(
             context: {
               config: DEFAULT_CONFIG,
               history: [],
+              lastFinalLetter: null,
+              runDelayMs: 0,
               inputs: {
                 duration: String(DEFAULT_CONFIG.durationMs),
                 jitter: String(DEFAULT_CONFIG.jitter),
@@ -115,15 +131,26 @@ export function machineReducer(
             },
           };
 
-        case "RUN_FINISHED":
+        case "RUN_FINISHED": {
+          const { historySize } = state.context.config;
+          const recentFinals = trimHistory(state.context.history, historySize);
+          const chosen = pickFinalLetter(LETTERS, recentFinals);
+          const nextHistory = trimHistory(
+            [...state.context.history, chosen],
+            historySize,
+          );
+          persistHistory(nextHistory);
+
           return {
             ...state,
             mode: "idle",
             context: {
               ...state.context,
-              history: event.nextHistory,
+              history: nextHistory,
+              lastFinalLetter: chosen,
             },
           };
+        }
 
         case "RESET":
           return {
@@ -131,6 +158,8 @@ export function machineReducer(
             context: {
               config: DEFAULT_CONFIG,
               history: [],
+              lastFinalLetter: null,
+              runDelayMs: 0,
               inputs: {
                 duration: String(DEFAULT_CONFIG.durationMs),
                 jitter: String(DEFAULT_CONFIG.jitter),
@@ -158,6 +187,7 @@ export function machineReducer(
             mode: "running",
             context: {
               ...state.context,
+              runDelayMs: computeRunDelayMs(state.context.config),
               runToken: state.context.runToken + 1,
             },
           };
@@ -168,6 +198,8 @@ export function machineReducer(
             context: {
               config: DEFAULT_CONFIG,
               history: [],
+              lastFinalLetter: null,
+              runDelayMs: 0,
               inputs: {
                 duration: String(DEFAULT_CONFIG.durationMs),
                 jitter: String(DEFAULT_CONFIG.jitter),

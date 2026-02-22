@@ -1,7 +1,6 @@
 import { useEffect, type RefObject } from "react";
 
 import type { MachineEvent, MachineState } from "../machine";
-import { pickFinalLetter, persistHistory, trimHistory } from "../storage";
 import { randomFrom } from "../utils";
 import { useLatest } from "./useLatest";
 
@@ -10,20 +9,16 @@ const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 interface UseRunningLoopParams {
   mode: MachineState["mode"];
   runToken: number;
-  config: MachineState["context"]["config"];
-  history: string[];
+  delayMs: number;
   letterRef: RefObject<HTMLElement | null>;
-  setCurrentLetter: (letter: string) => void;
   dispatch: (event: MachineEvent) => void;
 }
 
 export function useRunningLoop({
   mode,
   runToken,
-  config,
-  history,
+  delayMs,
   letterRef,
-  setCurrentLetter,
   dispatch,
 }: UseRunningLoopParams) {
   const runTokenRef = useLatest(runToken);
@@ -46,42 +41,14 @@ export function useRunningLoop({
 
     rafId = requestAnimationFrame(tick);
 
-    const { durationMs, jitter } = config;
-    const delay = Math.max(
-      0,
-      durationMs + (Math.floor(Math.random() * (jitter * 2 + 1)) - jitter),
-    );
-
     timeoutId = window.setTimeout(() => {
       if (runTokenRef.current !== myToken) return;
-
-      const { historySize } = config;
-      const recentFinals = trimHistory(history, historySize);
-      const chosen = pickFinalLetter(LETTERS, recentFinals);
-
-      if (letterRef.current) {
-        letterRef.current.textContent = chosen;
-      }
-      setCurrentLetter(chosen);
-
-      const nextHistory = trimHistory([...history, chosen], historySize);
-      persistHistory(nextHistory);
-
-      dispatch({ type: "RUN_FINISHED", finalLetter: chosen, nextHistory });
-    }, delay);
+      dispatch({ type: "RUN_FINISHED" });
+    }, delayMs);
 
     return () => {
       if (rafId !== null) cancelAnimationFrame(rafId);
       if (timeoutId !== null) clearTimeout(timeoutId);
     };
-  }, [
-    mode,
-    runToken,
-    config,
-    history,
-    letterRef,
-    setCurrentLetter,
-    dispatch,
-    runTokenRef,
-  ]);
+  }, [mode, runToken, delayMs, letterRef, dispatch, runTokenRef]);
 }

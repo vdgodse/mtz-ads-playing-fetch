@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
+import { minify as minifyHtml } from "html-minifier-terser";
 import { defineConfig, type Plugin, type ResolvedConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { PurgeCSS } from "purgecss";
@@ -149,6 +150,18 @@ function inlineCssIntoHtml(): Plugin {
         /<link\s+[^>]*rel=["']modulepreload["'][^>]*href=["']data:[^"']+["'][^>]*>\s*/gi,
         "",
       );
+
+      html = await minifyHtml(html, {
+        collapseWhitespace: true,
+        removeComments: true,
+        removeRedundantAttributes: true,
+        removeScriptTypeAttributes: true,
+        removeStyleLinkTypeAttributes: true,
+        useShortDoctype: true,
+        keepClosingSlash: true,
+        minifyCSS: true,
+        minifyJS: true,
+      });
 
       await fs.writeFile(indexHtmlPath, html, "utf8");
     },
