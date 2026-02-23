@@ -57,14 +57,12 @@ export const appViewportShellStyle: React.CSSProperties = {
 export const ambientNoiseOverlayStyle: React.CSSProperties = {
   position: "absolute",
   inset: 0,
+  width: "100%",
+  height: "100%",
   pointerEvents: "none",
   zIndex: 0,
   opacity: 0.11,
   mixBlendMode: "overlay",
-  backgroundImage:
-    "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='128' height='128' viewBox='0 0 128 128'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='128' height='128' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E\")",
-  backgroundRepeat: "repeat",
-  backgroundSize: "128px 128px",
 };
 
 export const topBarStyle: React.CSSProperties = {

@@ -75,7 +75,9 @@ function App() {
 
   return (
     <div style={appViewportShellStyle}>
-      {/* <div aria-hidden="true" style={ambientNoiseOverlayStyle} /> */}
+      <svg aria-hidden="true" style={ambientNoiseOverlayStyle}>
+        <rect width="100%" height="100%" filter="url(#noise-filter)" />
+      </svg>
       <TopBar>
         <button
           type="button"
