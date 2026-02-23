@@ -1,25 +1,14 @@
-import { topBarActionsStyle, topBarStyle, settingsToggleButtonStyle } from "../styles";
+import type { ReactNode } from "react";
+import { topBarActionsStyle, topBarStyle } from "../styles";
 
 interface TopBarProps {
-  isSettingsOpen: boolean;
-  onSettingsClick: () => void;
+  children?: ReactNode;
 }
 
-export function TopBar({ isSettingsOpen, onSettingsClick }: TopBarProps) {
+export function TopBar({ children }: TopBarProps) {
   return (
     <header style={topBarStyle}>
-      <div style={topBarActionsStyle}>
-        <button
-          type="button"
-          onClick={onSettingsClick}
-          style={settingsToggleButtonStyle(isSettingsOpen)}
-          title="Settings"
-          aria-hidden={isSettingsOpen}
-          tabIndex={isSettingsOpen ? -1 : 0}
-        >
-          Settings
-        </button>
-      </div>
+      <div style={topBarActionsStyle}>{children}</div>
     </header>
   );
 }

@@ -7,7 +7,7 @@ import { useEscapeKey } from "./hooks/useEscapeKey";
 import { useRunningLoop } from "./hooks/useRunningLoop";
 import { createInitialState, machineReducer } from "./machine";
 import { loadInitialState, resetPersistentStorage } from "./storage";
-import { ambientNoiseOverlayStyle, appViewportShellStyle } from "./styles";
+import { ambientNoiseOverlayStyle, appViewportShellStyle, settingsToggleButtonStyle } from "./styles";
 import { randomFrom } from "./utils";
 
 const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
@@ -75,8 +75,19 @@ function App() {
 
   return (
     <div style={appViewportShellStyle}>
-      <div aria-hidden="true" style={ambientNoiseOverlayStyle} />
-      <TopBar isSettingsOpen={state.mode === "settings"} onSettingsClick={handleSettingsClick} />
+      {/* <div aria-hidden="true" style={ambientNoiseOverlayStyle} /> */}
+      <TopBar>
+        <button
+          type="button"
+          onClick={handleSettingsClick}
+          style={settingsToggleButtonStyle(state.mode === "settings")}
+          title="Settings"
+          aria-hidden={state.mode === "settings"}
+          tabIndex={state.mode === "settings" ? -1 : 0}
+        >
+          Settings
+        </button>
+      </TopBar>
       <LetterStage
         currentLetter={currentLetter}
         isRunning={state.mode === "running"}
