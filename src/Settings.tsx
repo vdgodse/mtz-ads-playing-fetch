@@ -1,4 +1,5 @@
 import { createContext, type ReactNode, type Ref, useContext } from "react";
+import styles from "./Settings.module.scss";
 
 interface SettingsRootProps {
   onClose: () => void;
@@ -14,6 +15,10 @@ type SettingsContextValue = {
 };
 
 const SettingsContext = createContext<SettingsContextValue | null>(null);
+
+function cx(...classes: Array<string | false | null | undefined>): string {
+  return classes.filter(Boolean).join(" ");
+}
 
 function useSettingsContext(): SettingsContextValue {
   const value = useContext(SettingsContext);
@@ -35,7 +40,7 @@ function SettingsRoot({ onClose, onReset, visible = true, children }: SettingsRo
 
 function SettingsBackdrop() {
   const { onClose, visible } = useSettingsContext();
-  const className = visible ? "settings-backdrop is-visible" : "settings-backdrop";
+  const className = cx(styles.settingsBackdrop, visible && styles.isVisible);
 
   return (
     <button type="button" onClick={onClose} aria-label="Close settings" className={className} />
@@ -49,7 +54,7 @@ interface SettingsPanelProps {
 
 function SettingsPanel({ children, panelRef }: SettingsPanelProps) {
   const { visible } = useSettingsContext();
-  const className = visible ? "settings-panel is-visible" : "settings-panel";
+  const className = cx(styles.settingsPanel, visible && styles.isVisible);
 
   return (
     <aside aria-label="Settings" className={className} ref={panelRef}>
@@ -62,8 +67,8 @@ function SettingsHeader() {
   const { onClose } = useSettingsContext();
 
   return (
-    <div className="settings-header">
-      <div className="settings-title">Settings</div>
+    <div className={styles.settingsHeader}>
+      <div className={styles.settingsTitle}>Settings</div>
       <button type="button" onClick={onClose} className="app-button app-button--secondary">
         Close
       </button>
@@ -91,8 +96,8 @@ function SettingsNumberInput({
   onCommit,
 }: SettingsNumberInputProps) {
   return (
-    <div className="settings-field">
-      <label className="settings-label" htmlFor={id}>
+    <div className={styles.settingsField}>
+      <label className={styles.settingsLabel} htmlFor={id}>
         {label}
       </label>
       <input
@@ -108,19 +113,19 @@ function SettingsNumberInput({
             (e.target as HTMLInputElement).blur();
           }
         }}
-        className="settings-input"
+        className={styles.settingsInput}
       />
     </div>
   );
 }
 
 function SettingsContent({ children }: { children: ReactNode }) {
-  return <div className="settings-content">{children}</div>;
+  return <div className={styles.settingsContent}>{children}</div>;
 }
 
 function SettingsFootnote() {
   return (
-    <div className="settings-footnote">
+    <div className={styles.settingsFootnote}>
       Settings are saved to localStorage. Only the <b>final</b> letter is checked against recent
       history.
     </div>

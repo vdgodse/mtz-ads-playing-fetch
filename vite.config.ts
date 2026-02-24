@@ -143,6 +143,13 @@ function inlineCssIntoHtml(): Plugin {
         "",
       );
 
+      const initialLetterBootstrapScript =
+        "<script>(function(){try{var key='mtz-ads-playing-fetch:v1:history';var raw=window.localStorage.getItem(key);if(!raw)return;var parsed=JSON.parse(raw);if(!Array.isArray(parsed)||parsed.length===0)return;var last=String(parsed[parsed.length-1]||'').toUpperCase();if(!/^[A-Z]$/.test(last))return;window.__MTZ_INITIAL_LETTER__=last;var el=document.querySelector('.active-letter-glyph');if(el)el.textContent=last;}catch(_e){}})();</script>";
+
+      if (!html.includes("__MTZ_INITIAL_LETTER__")) {
+        html = html.replace("</body>", `${initialLetterBootstrapScript}</body>`);
+      }
+
       html = await minifyHtml(html, {
         collapseWhitespace: true,
         removeComments: true,

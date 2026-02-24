@@ -3,13 +3,13 @@ import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { LetterStage } from "./components/LetterStage";
 import { SettingsOverlay } from "./components/SettingsOverlay";
 import { TopBar } from "./components/TopBar";
+import { LETTERS } from "./constants";
 import { useEscapeKey } from "./hooks/useEscapeKey";
 import { useRunningLoop } from "./hooks/useRunningLoop";
 import { createInitialState, machineReducer } from "./machine";
 import { loadInitialState, resetPersistentStorage } from "./storage";
 import { randomFrom } from "./utils";
-
-const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+import { getInitialLetterForRender } from "./utils/initialLetter";
 
 function App() {
   const initial = useMemo(() => loadInitialState(), []);
@@ -19,7 +19,7 @@ function App() {
     createInitialState(initial.config, initial.history),
   );
 
-  const [currentLetter, setCurrentLetter] = useState(() => randomFrom(LETTERS));
+  const [currentLetter, setCurrentLetter] = useState(getInitialLetterForRender);
 
   const startButtonRef = useRef<HTMLButtonElement | null>(null);
   const currentLetterRef = useRef<HTMLDivElement | null>(null);

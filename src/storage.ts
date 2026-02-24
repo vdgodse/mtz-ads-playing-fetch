@@ -1,3 +1,4 @@
+import { CONFIG_STORAGE_KEY, HISTORY_STORAGE_KEY } from "./constants";
 import { randomFrom } from "./utils";
 
 export type Config = {
@@ -11,9 +12,6 @@ export const DEFAULT_CONFIG: Config = {
   jitter: 200,
   historySize: 12,
 };
-
-const CONFIG_KEY = "mtz-ads-playing-fetch:v1:config";
-const HISTORY_KEY = "mtz-ads-playing-fetch:v1:history";
 
 function getPersistentItem(key: string): string | null {
   try {
@@ -69,7 +67,7 @@ export function pickFinalLetter(allLetters: string[], recentFinals: string[]): s
 }
 
 export function loadConfig(): Config {
-  const raw = getPersistentItem(CONFIG_KEY);
+  const raw = getPersistentItem(CONFIG_STORAGE_KEY);
   if (!raw) return DEFAULT_CONFIG;
 
   try {
@@ -84,11 +82,11 @@ export function loadConfig(): Config {
 }
 
 export function persistConfig(config: Config): void {
-  persistItem(CONFIG_KEY, JSON.stringify(config));
+  persistItem(CONFIG_STORAGE_KEY, JSON.stringify(config));
 }
 
 export function loadHistory(): string[] {
-  const raw = getPersistentItem(HISTORY_KEY);
+  const raw = getPersistentItem(HISTORY_STORAGE_KEY);
   if (!raw) return [];
 
   try {
@@ -105,7 +103,7 @@ export function loadHistory(): string[] {
 }
 
 export function persistHistory(history: string[]): void {
-  persistItem(HISTORY_KEY, JSON.stringify(history));
+  persistItem(HISTORY_STORAGE_KEY, JSON.stringify(history));
 }
 
 type PersistStateInput =
@@ -123,8 +121,8 @@ export function persistState(state: PersistStateInput): void {
 }
 
 export function resetPersistentStorage(): void {
-  removePersistentItem(CONFIG_KEY);
-  removePersistentItem(HISTORY_KEY);
+  removePersistentItem(CONFIG_STORAGE_KEY);
+  removePersistentItem(HISTORY_STORAGE_KEY);
 }
 
 export function loadInitialState(): { config: Config; history: string[] } {

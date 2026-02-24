@@ -50,13 +50,13 @@ export function SettingsOverlay({ state, dispatch, onReset }: SettingsOverlayPro
           };
 
           const handleAnimationEnd = (event: AnimationEvent) => {
-            if (event.target === panel && event.animationName === "settings-panel-out") {
+            if (event.target === panel) {
               settle();
             }
           };
 
           const handleAnimationCancel = (event: AnimationEvent) => {
-            if (event.target === panel && event.animationName === "settings-panel-out") {
+            if (event.target === panel) {
               settle();
             }
           };

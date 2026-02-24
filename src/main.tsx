@@ -1,19 +1,30 @@
 import React from "react";
-import ReactDOM from "react-dom/client";
+import { createRoot, hydrateRoot } from "react-dom/client";
 import App from "./App";
-import "./nonCritical.css";
-
-if (import.meta.env.DEV) {
-  void import("./critical.css");
-}
 
 const rootEl = document.getElementById("root");
 if (!rootEl) {
   throw new Error("Root element #root not found");
 }
+const root = rootEl;
 
-ReactDOM.createRoot(rootEl).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
-);
+async function bootstrap() {
+  if (import.meta.env.DEV) {
+    await import("./critical.css");
+  }
+
+  const app = (
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>
+  );
+
+  if (root.hasChildNodes()) {
+    hydrateRoot(root, app);
+    return;
+  }
+
+  createRoot(root).render(app);
+}
+
+void bootstrap();

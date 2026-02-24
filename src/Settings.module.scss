@@ -1,6 +1,4 @@
-/* Non-critical CSS: loaded in parallel (non-render-blocking) */
-
-.settings-backdrop {
+.settingsBackdrop {
   position: fixed;
   inset: 0;
   z-index: 20;
@@ -10,14 +8,14 @@
   margin: 0;
   cursor: pointer;
   opacity: 0;
-  animation: settings-backdrop-out 220ms ease forwards;
+  animation: settingsBackdropOut 220ms ease forwards;
+
+  &.isVisible {
+    animation: settingsBackdropIn 220ms ease forwards;
+  }
 }
 
-.settings-backdrop.is-visible {
-  animation: settings-backdrop-in 220ms ease forwards;
-}
-
-.settings-panel {
+.settingsPanel {
   position: fixed;
   top: 0;
   right: 0;
@@ -33,15 +31,15 @@
   gap: 14px;
   transform: translateX(104%);
   opacity: 0.98;
-  animation: settings-panel-out 280ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: settingsPanelOut 280ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
   will-change: transform, opacity;
+
+  &.isVisible {
+    animation: settingsPanelIn 280ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
 }
 
-.settings-panel.is-visible {
-  animation: settings-panel-in 280ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
-}
-
-@keyframes settings-backdrop-in {
+@keyframes settingsBackdropIn {
   from {
     opacity: 0;
   }
@@ -50,7 +48,7 @@
   }
 }
 
-@keyframes settings-backdrop-out {
+@keyframes settingsBackdropOut {
   from {
     opacity: 1;
   }
@@ -59,7 +57,7 @@
   }
 }
 
-@keyframes settings-panel-in {
+@keyframes settingsPanelIn {
   from {
     transform: translateX(104%);
     opacity: 0.98;
@@ -70,7 +68,7 @@
   }
 }
 
-@keyframes settings-panel-out {
+@keyframes settingsPanelOut {
   from {
     transform: translateX(0);
     opacity: 1;
@@ -81,35 +79,35 @@
   }
 }
 
-.settings-header {
+.settingsHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
 }
 
-.settings-title {
+.settingsTitle {
   font-weight: 700;
   letter-spacing: 0.2px;
 }
 
-.settings-content {
+.settingsContent {
   display: grid;
   gap: 12px;
   align-content: start;
 }
 
-.settings-field {
+.settingsField {
   display: grid;
   gap: 6px;
 }
 
-.settings-label {
+.settingsLabel {
   font-size: 12px;
   opacity: 0.85;
 }
 
-.settings-input {
+.settingsInput {
   padding: 10px 12px;
   border-radius: 10px;
   border: 1px solid rgba(255, 255, 255, 0.14);
@@ -118,14 +116,14 @@
   outline: none;
 }
 
-.settings-footnote {
+.settingsFootnote {
   font-size: 12px;
   opacity: 0.7;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .settings-backdrop,
-  .settings-panel {
+  .settingsBackdrop,
+  .settingsPanel {
     animation: none;
   }
 }
