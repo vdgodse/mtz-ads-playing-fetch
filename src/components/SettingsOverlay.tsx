@@ -1,4 +1,4 @@
-import { Activity, type Dispatch } from "react";
+import { Activity, useEffect, useRef, useState, type Dispatch } from "react";
 
 import type { MachineEvent, MachineState } from "../machine";
 import { Settings } from "../Settings";
@@ -11,16 +11,91 @@ interface SettingsOverlayProps {
 
 export function SettingsOverlay({ state, dispatch, onReset }: SettingsOverlayProps) {
   const isSettingsOpen = state.mode === "settings";
+  const [activityMode, setActivityMode] = useState<"visible" | "hidden">(
+    isSettingsOpen ? "visible" : "hidden",
+  );
+  const [isVisible, setIsVisible] = useState(isSettingsOpen);
+  const panelRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (isSettingsOpen) {
+      setIsVisible(true);
+      setActivityMode("visible");
+      return;
+    } else {
+      setIsVisible(false);
+
+      let isCancelled = false;
+      let stopWaiting: (() => void) | null = null;
+
+      const waitForExitAnimation = async () => {
+        await new Promise<void>((resolve) => {
+          window.requestAnimationFrame(() => resolve());
+        });
+
+        const panel = panelRef.current;
+        if (!panel) {
+          return;
+        }
+
+        await new Promise<void>((resolve) => {
+          let settled = false;
+
+          const settle = () => {
+            if (settled) return;
+            settled = true;
+            panel.removeEventListener("animationend", handleAnimationEnd);
+            panel.removeEventListener("animationcancel", handleAnimationCancel);
+            resolve();
+          };
+
+          const handleAnimationEnd = (event: AnimationEvent) => {
+            if (event.target === panel) {
+              settle();
+            }
+          };
+
+          const handleAnimationCancel = (event: AnimationEvent) => {
+            if (event.target === panel) {
+              settle();
+            }
+          };
+
+          panel.addEventListener("animationend", handleAnimationEnd);
+          panel.addEventListener("animationcancel", handleAnimationCancel);
+          stopWaiting = settle;
+
+          const computed = window.getComputedStyle(panel);
+          const animationName = computed.animationName;
+
+          if (!animationName || animationName === "none") {
+            settle();
+          }
+        });
+      };
+
+      void waitForExitAnimation().finally(() => {
+        if (!isCancelled) {
+          setActivityMode("hidden");
+        }
+      });
+
+      return () => {
+        isCancelled = true;
+        stopWaiting?.();
+      };
+    }
+  }, [isSettingsOpen]);
 
   return (
-    <Activity mode={isSettingsOpen ? "visible" : "hidden"}>
+    <Activity mode={activityMode}>
       <Settings.Root
         onClose={() => dispatch({ type: "CLOSE_SETTINGS" })}
         onReset={onReset}
-        visible={isSettingsOpen}
+        visible={isVisible}
       >
         <Settings.Backdrop />
-        <Settings.Panel>
+        <Settings.Panel panelRef={panelRef}>
           <Settings.Header />
           <Settings.Content>
             <Settings.NumberInput
