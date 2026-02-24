@@ -1,7 +1,7 @@
 import { useEffect, type RefObject } from "react";
 
-import type { MachineEvent, MachineState } from "../machine";
-import { randomFrom } from "../utils";
+import type { MachineEvent, MachineState } from "../state/machine";
+import { randomFrom } from "../utils/random";
 import { useLatest } from "./useLatest";
 
 const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");

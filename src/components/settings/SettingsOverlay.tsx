@@ -1,7 +1,7 @@
 import { Activity, useEffect, useRef, useState, type Dispatch } from "react";
 
-import type { MachineEvent, MachineState } from "../machine";
-import { Settings } from "../Settings";
+import type { MachineEvent, MachineState } from "../../state/machine";
+import { Settings } from "./Settings";
 
 interface SettingsOverlayProps {
   state: MachineState;

@@ -6,7 +6,7 @@ import { defineConfig, type Plugin, type ResolvedConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { PurgeCSS } from "purgecss";
 import { initialLetterBootstrap } from "./src/noImports/initialLetterBootstrap";
-import { HISTORY_STORAGE_KEY } from "./src/constants";
+import { HISTORY_STORAGE_KEY } from "./src/config/constants";
 
 async function collectFilesRecursive(dirPath: string, matcher: RegExp): Promise<string[]> {
   const entries = await fs.readdir(dirPath, { withFileTypes: true });
@@ -34,7 +34,7 @@ function inlineCssIntoHtml(): Plugin {
       resolved = config;
     },
     async transformIndexHtml(html) {
-      const criticalCssPath = path.join(resolved.root, "src", "critical.css");
+      const criticalCssPath = path.join(resolved.root, "src", "styles", "critical.css");
 
       let criticalCss = "";
       try {

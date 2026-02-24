@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 
-import { LetterStage } from "./components/LetterStage";
-import { SettingsOverlay } from "./components/SettingsOverlay";
-import { TopBar } from "./components/TopBar";
-import { LETTERS } from "./constants";
+import { TopBar } from "./components/layout/TopBar";
+import { SettingsOverlay } from "./components/settings/SettingsOverlay";
+import { LetterStage } from "./components/stage/LetterStage";
+import { LETTERS } from "./config/constants";
 import { useEscapeKey } from "./hooks/useEscapeKey";
 import { useRunningLoop } from "./hooks/useRunningLoop";
-import { createInitialState, machineReducer } from "./machine";
-import { loadInitialState, resetPersistentStorage } from "./storage";
-import { randomFrom } from "./utils";
+import { createInitialState, machineReducer } from "./state/machine";
+import { loadInitialState, resetPersistentStorage } from "./state/storage";
+import { randomFrom } from "./utils/random";
 import { getInitialLetterForRender } from "./utils/initialLetter";
 
 function App() {

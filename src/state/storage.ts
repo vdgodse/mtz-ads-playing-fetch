@@ -1,5 +1,5 @@
-import { CONFIG_STORAGE_KEY, HISTORY_STORAGE_KEY } from "./constants";
-import { randomFrom } from "./utils";
+import { CONFIG_STORAGE_KEY, HISTORY_STORAGE_KEY } from "../config/constants";
+import { randomFrom } from "../utils/random";
 
 export type Config = {
   durationMs: number;

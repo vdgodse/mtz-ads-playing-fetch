@@ -1,4 +1,4 @@
-import { HISTORY_STORAGE_KEY, INITIAL_LETTER } from "../constants";
+import { HISTORY_STORAGE_KEY, INITIAL_LETTER } from "../config/constants";
 
 function sanitizeLetter(value: unknown): string | null {
   if (typeof value !== "string") return null;

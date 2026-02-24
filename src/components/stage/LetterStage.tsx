@@ -1,6 +1,6 @@
 import type { MutableRefObject } from "react";
 
-import { ReloadIcon } from "../ReloadIcon";
+import { ReloadIcon } from "../icons/ReloadIcon";
 
 interface LetterStageProps {
   currentLetter: string;
