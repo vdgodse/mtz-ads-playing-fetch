@@ -2,6 +2,16 @@
 
 Fun friday - playing fetch
 
+## Node version
+
+This repo is pinned to **Node 20** to match CI/CD (`deploy.yml`).
+
+- `.nvmrc` pins the local Node version.
+- `package.json` `engines.node` declares required runtime.
+- `.npmrc` has `engine-strict=true` so incompatible Node versions fail fast.
+
+If you use `nvm`, run `nvm use` in the project root before installing/running.
+
 ## React Compiler (Forget)
 
 This project has React Compiler enabled through Vite's React plugin.
