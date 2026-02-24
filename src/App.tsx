@@ -7,7 +7,6 @@ import { useEscapeKey } from "./hooks/useEscapeKey";
 import { useRunningLoop } from "./hooks/useRunningLoop";
 import { createInitialState, machineReducer } from "./machine";
 import { loadInitialState, resetPersistentStorage } from "./storage";
-import { ambientNoiseOverlayStyle, appViewportShellStyle, settingsToggleButtonStyle } from "./styles";
 import { randomFrom } from "./utils";
 
 const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
@@ -74,15 +73,15 @@ function App() {
   }
 
   return (
-    <div style={appViewportShellStyle}>
-      <svg aria-hidden="true" style={ambientNoiseOverlayStyle}>
+    <div className="app-shell">
+      <svg aria-hidden="true" className="ambient-noise-overlay">
         <rect width="100%" height="100%" filter="url(#noise-filter)" />
       </svg>
       <TopBar>
         <button
           type="button"
           onClick={handleSettingsClick}
-          style={settingsToggleButtonStyle(state.mode === "settings")}
+          className={`app-button app-button--secondary settings-toggle-button${state.mode === "settings" ? " is-hidden" : ""}`}
           title="Settings"
           aria-hidden={state.mode === "settings"}
           tabIndex={state.mode === "settings" ? -1 : 0}

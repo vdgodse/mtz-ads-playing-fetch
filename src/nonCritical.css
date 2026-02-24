@@ -1,1 +1,131 @@
 /* Non-critical CSS: loaded in parallel (non-render-blocking) */
+
+.settings-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: rgba(0, 0, 0, 0.55);
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  opacity: 0;
+  animation: settings-backdrop-out 220ms ease forwards;
+}
+
+.settings-backdrop.is-visible {
+  animation: settings-backdrop-in 220ms ease forwards;
+}
+
+.settings-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 21;
+  height: 100vh;
+  width: min(420px, 92vw);
+  background: rgba(15, 20, 40, 0.98);
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: -20px 0 60px rgba(0, 0, 0, 0.45);
+  padding: 18px;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 14px;
+  transform: translateX(104%);
+  opacity: 0.98;
+  animation: settings-panel-out 280ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  will-change: transform, opacity;
+}
+
+.settings-panel.is-visible {
+  animation: settings-panel-in 280ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes settings-backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes settings-backdrop-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes settings-panel-in {
+  from {
+    transform: translateX(104%);
+    opacity: 0.98;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes settings-panel-out {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(104%);
+    opacity: 0.98;
+  }
+}
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.settings-title {
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+
+.settings-content {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.settings-field {
+  display: grid;
+  gap: 6px;
+}
+
+.settings-label {
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.settings-input {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.25);
+  color: #e7e9ee;
+  outline: none;
+}
+
+.settings-footnote {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .settings-backdrop,
+  .settings-panel {
+    animation: none;
+  }
+}

@@ -1,14 +1,6 @@
 import type { MutableRefObject } from "react";
 
 import { ReloadIcon } from "../ReloadIcon";
-import {
-  activeLetterGlyphStyle,
-  buttonStyle,
-  centerStageLayoutStyle,
-  letterBoardContainerStyle,
-  letterDisplayStageStyle,
-  reloadActionRowStyle,
-} from "../styles";
 
 interface LetterStageProps {
   currentLetter: string;
@@ -26,19 +18,19 @@ export function LetterStage({
   currentLetterRef,
 }: LetterStageProps) {
   return (
-    <main style={centerStageLayoutStyle}>
-      <section style={letterBoardContainerStyle}>
-        <article style={letterDisplayStageStyle}>
-          <div ref={currentLetterRef} style={activeLetterGlyphStyle}>
+    <main className="center-stage-layout">
+      <section className="letter-board-container">
+        <article className="letter-display-stage">
+          <div ref={currentLetterRef} className="active-letter-glyph">
             {currentLetter}
           </div>
-          <div style={reloadActionRowStyle}>
+          <div className="reload-action-row">
             <button
               ref={startButtonRef}
               type="button"
               onClick={onStart}
               disabled={isRunning}
-              style={buttonStyle("primary", isRunning)}
+              className="app-button app-button--primary"
               aria-label="Reload"
             >
               <ReloadIcon />

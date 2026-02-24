@@ -2,8 +2,7 @@ import {
   type Config,
   DEFAULT_CONFIG,
   pickFinalLetter,
-  persistConfig,
-  persistHistory,
+  persistState,
   sanitizeDurationMs,
   sanitizeHistorySize,
   sanitizeJitter,
@@ -30,6 +29,8 @@ export type MachineState = {
   context: MachineContext;
 };
 
+type SettingsInputField = keyof MachineContext["inputs"];
+
 export type MachineEvent =
   | { type: "START" }
   | { type: "STOP" }
@@ -37,12 +38,8 @@ export type MachineEvent =
   | { type: "CLOSE_SETTINGS" }
   | { type: "RESET" }
   | { type: "RUN_FINISHED" }
-  | { type: "CHANGE_DURATION_INPUT"; value: string }
-  | { type: "COMMIT_DURATION" }
-  | { type: "CHANGE_JITTER_INPUT"; value: string }
-  | { type: "COMMIT_JITTER" }
-  | { type: "CHANGE_HISTORY_SIZE_INPUT"; value: string }
-  | { type: "COMMIT_HISTORY_SIZE" };
+  | { type: "CHANGE_INPUT"; field: SettingsInputField; value: string }
+  | { type: "COMMIT_INPUT"; field: SettingsInputField };
 
 const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
@@ -129,7 +126,7 @@ export function machineReducer(state: MachineState, event: MachineEvent): Machin
           const recentFinals = trimHistory(state.context.history, historySize);
           const chosen = pickFinalLetter(LETTERS, recentFinals);
           const nextHistory = trimHistory([...state.context.history, chosen], historySize);
-          persistHistory(nextHistory);
+          persistState({ history: nextHistory });
 
           return {
             ...state,
@@ -199,105 +196,86 @@ export function machineReducer(state: MachineState, event: MachineEvent): Machin
             },
           };
 
-        case "CHANGE_DURATION_INPUT":
+        case "CHANGE_INPUT":
           return {
             ...state,
             context: {
               ...state.context,
               inputs: {
                 ...state.context.inputs,
-                duration: event.value,
+                [event.field]: event.value,
               },
             },
           };
 
-        case "COMMIT_DURATION": {
-          const sanitized = sanitizeDurationMs(
-            state.context.inputs.duration,
-            DEFAULT_CONFIG.durationMs,
-          );
-          const nextConfig = { ...state.context.config, durationMs: sanitized };
-          persistConfig(nextConfig);
-          return {
-            ...state,
-            context: {
-              ...state.context,
-              config: nextConfig,
-              inputs: {
-                ...state.context.inputs,
-                duration: String(sanitized),
-              },
-            },
-          };
-        }
+        case "COMMIT_INPUT": {
+          switch (event.field) {
+            case "duration": {
+              const sanitized = sanitizeDurationMs(
+                state.context.inputs.duration,
+                DEFAULT_CONFIG.durationMs,
+              );
+              const nextConfig = { ...state.context.config, durationMs: sanitized };
+              persistState({ config: nextConfig });
+              return {
+                ...state,
+                context: {
+                  ...state.context,
+                  config: nextConfig,
+                  inputs: {
+                    ...state.context.inputs,
+                    duration: String(sanitized),
+                  },
+                },
+              };
+            }
 
-        case "CHANGE_JITTER_INPUT":
-          return {
-            ...state,
-            context: {
-              ...state.context,
-              inputs: {
-                ...state.context.inputs,
-                jitter: event.value,
-              },
-            },
-          };
+            case "jitter": {
+              const sanitized = sanitizeJitter(state.context.inputs.jitter, DEFAULT_CONFIG.jitter);
+              const nextConfig = { ...state.context.config, jitter: sanitized };
+              persistState({ config: nextConfig });
+              return {
+                ...state,
+                context: {
+                  ...state.context,
+                  config: nextConfig,
+                  inputs: {
+                    ...state.context.inputs,
+                    jitter: String(sanitized),
+                  },
+                },
+              };
+            }
 
-        case "COMMIT_JITTER": {
-          const sanitized = sanitizeJitter(state.context.inputs.jitter, DEFAULT_CONFIG.jitter);
-          const nextConfig = { ...state.context.config, jitter: sanitized };
-          persistConfig(nextConfig);
-          return {
-            ...state,
-            context: {
-              ...state.context,
-              config: nextConfig,
-              inputs: {
-                ...state.context.inputs,
-                jitter: String(sanitized),
-              },
-            },
-          };
-        }
+            case "historySize": {
+              const sanitized = sanitizeHistorySize(
+                state.context.inputs.historySize,
+                DEFAULT_CONFIG.historySize,
+              );
+              const nextConfig = {
+                ...state.context.config,
+                historySize: sanitized,
+              };
+              const trimmedHistory = trimHistory(state.context.history, sanitized);
+              persistState({ config: nextConfig, history: trimmedHistory });
 
-        case "CHANGE_HISTORY_SIZE_INPUT":
-          return {
-            ...state,
-            context: {
-              ...state.context,
-              inputs: {
-                ...state.context.inputs,
-                historySize: event.value,
-              },
-            },
-          };
+              return {
+                ...state,
+                context: {
+                  ...state.context,
+                  config: nextConfig,
+                  history: trimmedHistory,
+                  inputs: {
+                    ...state.context.inputs,
+                    historySize: String(sanitized),
+                  },
+                },
+              };
+            }
 
-        case "COMMIT_HISTORY_SIZE": {
-          const sanitized = sanitizeHistorySize(
-            state.context.inputs.historySize,
-            DEFAULT_CONFIG.historySize,
-          );
-          const nextConfig = {
-            ...state.context.config,
-            historySize: sanitized,
-          };
-          persistConfig(nextConfig);
-
-          const trimmedHistory = trimHistory(state.context.history, sanitized);
-          persistHistory(trimmedHistory);
-
-          return {
-            ...state,
-            context: {
-              ...state.context,
-              config: nextConfig,
-              history: trimmedHistory,
-              inputs: {
-                ...state.context.inputs,
-                historySize: String(sanitized),
-              },
-            },
-          };
+            default:
+              return state;
+          }
         }
 
         default:

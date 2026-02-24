@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { topBarActionsStyle, topBarStyle } from "../styles";
 
 interface TopBarProps {
   children?: ReactNode;
@@ -7,8 +6,8 @@ interface TopBarProps {
 
 export function TopBar({ children }: TopBarProps) {
   return (
-    <header style={topBarStyle}>
-      <div style={topBarActionsStyle}>{children}</div>
+    <header className="top-bar">
+      <div className="top-bar-actions">{children}</div>
     </header>
   );
 }

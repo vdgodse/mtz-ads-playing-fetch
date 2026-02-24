@@ -108,6 +108,20 @@ export function persistHistory(history: string[]): void {
   persistItem(HISTORY_KEY, JSON.stringify(history));
 }
 
+type PersistStateInput =
+  | { config: Config; history?: string[] }
+  | { config?: Config; history: string[] };
+
+export function persistState(state: PersistStateInput): void {
+  if (state.config) {
+    persistConfig(state.config);
+  }
+
+  if (state.history) {
+    persistHistory(state.history);
+  }
+}
+
 export function resetPersistentStorage(): void {
   removePersistentItem(CONFIG_KEY);
   removePersistentItem(HISTORY_KEY);
@@ -119,8 +133,7 @@ export function loadInitialState(): { config: Config; history: string[] } {
   const history = trimHistory(rawHistory, config.historySize);
 
   // Self-heal storage so it always contains sanitized values.
-  persistConfig(config);
-  persistHistory(history);
+  persistState({ config, history });
 
   return { config, history };
 }
