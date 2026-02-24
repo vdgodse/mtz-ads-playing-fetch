@@ -1,0 +1,15 @@
+{
+  "overrides": [
+    {
+      "files": ["src/noImports/**/*.{ts,tsx,js,mjs,cjs}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": ["*"]
+          }
+        ]
+      }
+    }
+  ]
+}

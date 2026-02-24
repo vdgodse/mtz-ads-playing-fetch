@@ -7,9 +7,7 @@ function sanitizeLetter(value: unknown): string | null {
 }
 
 function resolveClientInitialLetter(): string {
-  const bootstrapLetter = sanitizeLetter(
-    (window as Window & { __MTZ_INITIAL_LETTER__?: unknown }).__MTZ_INITIAL_LETTER__,
-  );
+  const bootstrapLetter = sanitizeLetter(window.__MTZ_INITIAL_LETTER__);
   if (bootstrapLetter) return bootstrapLetter;
 
   try {

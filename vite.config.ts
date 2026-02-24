@@ -5,6 +5,8 @@ import { minify as minifyHtml } from "html-minifier-terser";
 import { defineConfig, type Plugin, type ResolvedConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { PurgeCSS } from "purgecss";
+import { initialLetterBootstrap } from "./src/noImports/initialLetterBootstrap";
+import { HISTORY_STORAGE_KEY } from "./src/constants";
 
 async function collectFilesRecursive(dirPath: string, matcher: RegExp): Promise<string[]> {
   const entries = await fs.readdir(dirPath, { withFileTypes: true });
@@ -143,8 +145,7 @@ function inlineCssIntoHtml(): Plugin {
         "",
       );
 
-      const initialLetterBootstrapScript =
-        "<script>(function(){try{var key='mtz-ads-playing-fetch:v1:history';var raw=window.localStorage.getItem(key);if(!raw)return;var parsed=JSON.parse(raw);if(!Array.isArray(parsed)||parsed.length===0)return;var last=String(parsed[parsed.length-1]||'').toUpperCase();if(!/^[A-Z]$/.test(last))return;window.__MTZ_INITIAL_LETTER__=last;var el=document.querySelector('.active-letter-glyph');if(el)el.textContent=last;}catch(_e){}})();</script>";
+      const initialLetterBootstrapScript = `<script>(${initialLetterBootstrap.toString()})(${JSON.stringify(HISTORY_STORAGE_KEY)});</script>`;
 
       if (!html.includes("__MTZ_INITIAL_LETTER__")) {
         html = html.replace("</body>", `${initialLetterBootstrapScript}</body>`);
