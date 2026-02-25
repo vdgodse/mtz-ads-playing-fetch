@@ -1,7 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
-import { minify as minifyHtml } from "html-minifier-terser";
 import { defineConfig, type Plugin, type ResolvedConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { PurgeCSS } from "purgecss";
@@ -23,11 +22,11 @@ async function collectFilesRecursive(dirPath: string, matcher: RegExp): Promise<
   return nested.flat();
 }
 
-function inlineCssIntoHtml(): Plugin {
+function inlineCriticalCssIntoHtml(): Plugin {
   let resolved: ResolvedConfig;
 
   return {
-    name: "inline-css-into-html",
+    name: "inline-critical-css-into-html",
     apply: "build",
     enforce: "post",
     configResolved(config) {
@@ -48,6 +47,19 @@ function inlineCssIntoHtml(): Plugin {
         `<style data-critical="true">\n${criticalCss}\n</style>\n</head>`,
       );
     },
+  };
+}
+
+function purgeStylesheets(): Plugin {
+  let resolved: ResolvedConfig;
+
+  return {
+    name: "purge-stylesheets",
+    apply: "build",
+    enforce: "post",
+    configResolved(config) {
+      resolved = config;
+    },
     async closeBundle() {
       const outDir = resolved.build.outDir;
       const indexHtmlPath = path.join(outDir, "index.html");
@@ -62,8 +74,6 @@ function inlineCssIntoHtml(): Plugin {
 
       const base = resolved.base ?? "/";
 
-      const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
       const hrefToCssPath = (href: string): string => {
         let relPath = href;
         const qIdx = relPath.indexOf("?");
@@ -73,7 +83,7 @@ function inlineCssIntoHtml(): Plugin {
         return path.join(outDir, relPath);
       };
 
-      // Convert remaining local stylesheet links to non-blocking preload.
+      // Find local stylesheet links so we can purge and potentially remove empty files.
       const stylesheetTagRe =
         /<link\s+[^>]*rel=["']stylesheet["'][^>]*href=["']([^"']+\.css(?:\?[^"']*)?)["'][^>]*>/gi;
       const stylesheetMatches = Array.from(html.matchAll(stylesheetTagRe));
@@ -121,49 +131,27 @@ function inlineCssIntoHtml(): Plugin {
 
         if (isEmptyAfterPurge) {
           html = html.replace(fullTag, "");
-          continue;
         }
-
-        const escapedHref = escapeRegExp(href);
-        const exactTagRe = new RegExp(
-          `<link\\s+[^>]*rel=["']stylesheet["'][^>]*href=["']${escapedHref}["'][^>]*>`,
-          "i",
-        );
-
-        html = html.replace(
-          exactTagRe,
-          [
-            `<link rel="preload" href="${href}" as="style" onload="this.onload=null;this.rel='stylesheet'">`,
-            `<noscript><link rel="stylesheet" href="${href}"></noscript>`,
-          ].join("\n"),
-        );
       }
 
-      // Remove any accidental inline data modulepreload tags.
-      html = html.replace(
-        /<link\s+[^>]*rel=["']modulepreload["'][^>]*href=["']data:[^"']+["'][^>]*>\s*/gi,
-        "",
-      );
+      await fs.writeFile(indexHtmlPath, html, "utf8");
+    },
+  };
+}
 
+function injectInitialLetterBootstrapScript(): Plugin {
+  return {
+    name: "inject-initial-letter-bootstrap-script",
+    apply: "build",
+    enforce: "post",
+    transformIndexHtml(html) {
       const initialLetterBootstrapScript = `<script>(${initialLetterBootstrap.toString()})(${JSON.stringify(HISTORY_STORAGE_KEY)});</script>`;
 
       if (!html.includes("__MTZ_INITIAL_LETTER__")) {
-        html = html.replace("</body>", `${initialLetterBootstrapScript}</body>`);
+        return html.replace("</body>", `${initialLetterBootstrapScript}</body>`);
       }
 
-      html = await minifyHtml(html, {
-        collapseWhitespace: true,
-        removeComments: true,
-        removeRedundantAttributes: true,
-        removeScriptTypeAttributes: true,
-        removeStyleLinkTypeAttributes: true,
-        useShortDoctype: true,
-        keepClosingSlash: true,
-        minifyCSS: true,
-        minifyJS: true,
-      });
-
-      await fs.writeFile(indexHtmlPath, html, "utf8");
+      return html;
     },
   };
 }
@@ -176,7 +164,9 @@ export default defineConfig({
         plugins: ["babel-plugin-react-compiler"],
       },
     }),
-    inlineCssIntoHtml(),
+    inlineCriticalCssIntoHtml(),
+    purgeStylesheets(),
+    injectInitialLetterBootstrapScript(),
   ],
   base: "/mtz-ads-playing-fetch/",
 });

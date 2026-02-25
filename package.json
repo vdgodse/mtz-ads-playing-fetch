@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsgo && vite build && node scripts/prerender.mjs",
+    "build:client": "vite build --manifest",
+    "build": "tsgo && npm run build:client && node scripts/prerender.mjs",
     "preview": "npm run build && vite preview",
     "deploy": "npm run build && gh-pages -d dist -b gh-pages -f",
     "lint": "oxlint --type-aware .",
