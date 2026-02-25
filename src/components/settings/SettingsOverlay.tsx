@@ -19,6 +19,7 @@ export function SettingsOverlay({ state, dispatch, onReset }: SettingsOverlayPro
 
   useEffect(() => {
     if (isSettingsOpen) {
+      // oxlint-disable-next-line react-hooks-js/set-state-in-effect
       setIsVisible(true);
       setActivityMode("visible");
       return;

@@ -33,6 +33,7 @@ function App() {
 
   useEffect(() => {
     if (state.context.lastFinalLetter) {
+      // oxlint-disable-next-line react-hooks-js/set-state-in-effect
       setCurrentLetter(state.context.lastFinalLetter);
     }
   }, [state.context.lastFinalLetter]);

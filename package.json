@@ -24,6 +24,7 @@
     "@typescript/native-preview": "latest",
     "@vitejs/plugin-react": "latest",
     "babel-plugin-react-compiler": "latest",
+    "eslint-plugin-react-hooks": "^7.0.1",
     "gh-pages": "^6.3.0",
     "html-minifier-terser": "latest",
     "husky": "^9.1.7",
