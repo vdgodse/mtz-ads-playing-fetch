@@ -9,6 +9,10 @@ fi
 
 printf '%s\n' "$staged_files" | while IFS= read -r file; do
 	case "$file" in
+		package-lock.json|pnpm-lock.yaml|yarn.lock)
+			# Lockfiles are machine-generated and may be ignored by oxfmt.
+			continue
+			;;
 		*.js|*.jsx|*.ts|*.tsx|*.json|*.css|*.scss|*.md|*.html|*.yml|*.yaml)
 			npx --no-install oxfmt "$file" --write
 			git add "$file"

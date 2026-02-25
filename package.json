@@ -4,36 +4,36 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build && node scripts/prerender.mjs",
+    "build": "tsgo && vite build && node scripts/prerender.mjs",
     "preview": "npm run build && vite preview",
     "deploy": "npm run build && gh-pages -d dist -b gh-pages -f",
-    "lint": "oxlint .",
-    "lint:fix": "oxlint . --fix",
+    "lint": "oxlint --type-aware .",
+    "lint:fix": "oxlint --type-aware . --fix",
     "format": "oxfmt . --write",
     "format:check": "oxfmt . --check",
     "prepare": "husky"
   },
   "dependencies": {
     "react": "^19.2.4",
-    "react-compiler-runtime": "^1.0.0",
     "react-dom": "^19.2.4"
   },
   "devDependencies": {
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^4.0.0",
-    "babel-plugin-react-compiler": "^1.0.0",
+    "@typescript/native-preview": "latest",
+    "@vitejs/plugin-react": "latest",
+    "babel-plugin-react-compiler": "latest",
     "gh-pages": "^6.3.0",
-    "html-minifier-terser": "^7.2.0",
+    "html-minifier-terser": "latest",
     "husky": "^9.1.7",
-    "oxfmt": "^0.34.0",
-    "oxlint": "^1.49.0",
-    "purgecss": "^7.0.2",
-    "sass": "^1.97.3",
-    "typescript": "^5.0.0",
-    "vite": "^4.5.0"
+    "oxfmt": "latest",
+    "oxlint": "latest",
+    "oxlint-tsgolint": "latest",
+    "purgecss": "latest",
+    "sass": "latest",
+    "vite": "latest"
   },
   "engines": {
-    "node": "20.x"
+    "node": "^24"
   }
 }

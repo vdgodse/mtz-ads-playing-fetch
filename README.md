@@ -4,7 +4,7 @@ Fun friday - playing fetch
 
 ## Node version
 
-This repo is pinned to **Node 20** to match CI/CD (`deploy.yml`).
+This repo is pinned to **Node 24** to match CI/CD (`deploy.yml`).
 
 - `.nvmrc` pins the local Node version.
 - `package.json` `engines.node` declares required runtime.

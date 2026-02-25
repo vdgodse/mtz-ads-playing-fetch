@@ -173,7 +173,7 @@ export default defineConfig({
     react({
       babel: {
         // React Compiler ("React Forget") must run first in Babel plugins.
-        plugins: [["babel-plugin-react-compiler", { target: "18" }]],
+        plugins: ["babel-plugin-react-compiler"],
       },
     }),
     inlineCssIntoHtml(),
