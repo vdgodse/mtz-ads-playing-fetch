@@ -5,13 +5,23 @@ export type Config = {
   durationMs: number;
   jitter: number;
   historySize: number;
+  soundEffectsEnabled: boolean;
 };
 
 export const DEFAULT_CONFIG: Config = {
   durationMs: 5000,
   jitter: 200,
   historySize: 12,
+  soundEffectsEnabled: true,
 };
+
+export function sanitizeSoundEffectsEnabled(raw: unknown, fallback: boolean): boolean {
+  if (typeof raw === "boolean") {
+    return raw;
+  }
+
+  return fallback;
+}
 
 function getPersistentItem(key: string): string | null {
   try {
@@ -75,7 +85,11 @@ export function loadConfig(): Config {
     const durationMs = sanitizeDurationMs(parsed?.durationMs, DEFAULT_CONFIG.durationMs);
     const historySize = sanitizeHistorySize(parsed?.historySize, DEFAULT_CONFIG.historySize);
     const jitter = sanitizeJitter(parsed?.jitter, DEFAULT_CONFIG.jitter);
-    return { durationMs, jitter, historySize };
+    const soundEffectsEnabled = sanitizeSoundEffectsEnabled(
+      parsed?.soundEffectsEnabled,
+      DEFAULT_CONFIG.soundEffectsEnabled,
+    );
+    return { durationMs, jitter, historySize, soundEffectsEnabled };
   } catch {
     return DEFAULT_CONFIG;
   }

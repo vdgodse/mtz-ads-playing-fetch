@@ -1,4 +1,4 @@
-import { useEffect, type RefObject } from "react";
+import { useEffect, useEffectEvent, type RefObject } from "react";
 
 import type { MachineEvent, MachineState } from "../state/machine";
 import { randomFrom } from "../utils/random";
@@ -12,6 +12,7 @@ interface UseRunningLoopParams {
   delayMs: number;
   letterRef: RefObject<HTMLElement | null>;
   dispatch: (event: MachineEvent) => void;
+  onLetterChange?: (letter: string) => void;
 }
 
 export function useRunningLoop({
@@ -20,8 +21,12 @@ export function useRunningLoop({
   delayMs,
   letterRef,
   dispatch,
+  onLetterChange,
 }: UseRunningLoopParams) {
   const runTokenRef = useLatest(runToken);
+  const emitLetterChange = useEffectEvent((letter: string) => {
+    onLetterChange?.(letter);
+  });
 
   useEffect(() => {
     if (mode !== "running") return;
@@ -36,6 +41,7 @@ export function useRunningLoop({
       if (letterRef.current) {
         letterRef.current.textContent = next;
       }
+      emitLetterChange(next);
       rafId = requestAnimationFrame(tick);
     };
 

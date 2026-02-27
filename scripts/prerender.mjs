@@ -7,6 +7,7 @@ const projectRoot = process.cwd();
 const outDir = path.resolve(projectRoot, "dist");
 const indexHtmlPath = path.join(outDir, "index.html");
 const manifestPath = path.join(outDir, ".vite", "manifest.json");
+const sourceIndexHtmlPath = path.join(projectRoot, "index.html");
 
 const vite = await createServer({
   root: projectRoot,
@@ -21,7 +22,7 @@ function inferAssetLinkTag(file) {
   const filePath = file.split(/[?#]/, 1)[0] ?? file;
 
   if (filePath.endsWith(".css")) {
-    return `<link rel="preload" href="${file}" as="style" crossorigin onload="this.onload=null;this.rel='stylesheet'"><noscript><link rel="stylesheet" href="${file}" crossorigin></noscript>`;
+    return `<link rel="preload" href="${file}" as="style" crossorigin onload="this.onload=null;this.rel='stylesheet'">`;
   }
 
   if (filePath.endsWith(".js")) {
@@ -41,6 +42,158 @@ function inferAssetLinkTag(file) {
   }
 
   return "";
+}
+
+function parseTagAttributes(tag) {
+  const attrs = new Map();
+  const attrRegex =
+    /([A-Za-z_:][-A-Za-z0-9_:.]*)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g;
+
+  let match;
+  while ((match = attrRegex.exec(tag)) !== null) {
+    const name = match[1];
+    if (!name) continue;
+
+    const lowerName = name.toLowerCase();
+    if (lowerName === "script" || lowerName === "link") {
+      continue;
+    }
+
+    const rawValue = match[2] ?? match[3] ?? match[4];
+    attrs.set(lowerName, {
+      name,
+      hasValue: rawValue !== undefined,
+      value: rawValue ?? "",
+    });
+  }
+
+  return attrs;
+}
+
+function serializeAttributes(attributes, omitNames = new Set()) {
+  const chunks = [];
+  for (const [lowerName, attr] of attributes) {
+    if (omitNames.has(lowerName)) {
+      continue;
+    }
+
+    if (attr.hasValue) {
+      chunks.push(`${attr.name}="${attr.value}"`);
+    } else {
+      chunks.push(attr.name);
+    }
+  }
+
+  return chunks.join(" ");
+}
+
+function collectSourceScriptAttributes(html) {
+  const attributesBySrc = new Map();
+  const scriptTagPattern = /<script\s+[^>]*\bsrc=["']([^"']+)["'][^>]*>/gi;
+
+  for (const match of html.matchAll(scriptTagPattern)) {
+    const fullTag = match[0];
+    const src = match[1];
+    if (!fullTag || !src) {
+      continue;
+    }
+
+    const normalizedSrc = normalizeComparableAssetPath(src);
+    if (!normalizedSrc) {
+      continue;
+    }
+
+    const attrs = parseTagAttributes(fullTag);
+    attrs.delete("src");
+    attrs.delete("type");
+
+    attributesBySrc.set(normalizedSrc, attrs);
+  }
+
+  return attributesBySrc;
+}
+
+function normalizeComparableAssetPath(filePath) {
+  if (!filePath) {
+    return "";
+  }
+
+  const withoutQuery = filePath.split(/[?#]/, 1)[0] ?? filePath;
+  const withoutOrigin = withoutQuery.replace(/^(https?:)?\/\/[^/]+/i, "");
+  return withoutOrigin.replace(/^\/+/, "");
+}
+
+function isSameAssetPath(leftPath, rightPath) {
+  const left = normalizeComparableAssetPath(leftPath);
+  const right = normalizeComparableAssetPath(rightPath);
+
+  if (!left || !right) {
+    return false;
+  }
+
+  return left === right || left.endsWith(`/${right}`) || right.endsWith(`/${left}`);
+}
+
+function collectExistingAssetReferences(html) {
+  const refs = new Set();
+
+  const tagRefPattern = /<(?:script\s+[^>]*\bsrc|link\s+[^>]*\bhref)=["']([^"']+)["'][^>]*>/gi;
+
+  for (const match of html.matchAll(tagRefPattern)) {
+    const ref = match[1];
+    if (!ref) {
+      continue;
+    }
+
+    refs.add(ref);
+  }
+
+  return refs;
+}
+
+function applyManagedStylesheetTag(fullTag, href) {
+  const attrs = parseTagAttributes(fullTag);
+  attrs.set("rel", { name: "rel", hasValue: true, value: "preload" });
+  attrs.set("href", { name: "href", hasValue: true, value: href });
+  attrs.set("as", { name: "as", hasValue: true, value: "style" });
+  attrs.set("onload", {
+    name: "onload",
+    hasValue: true,
+    value: "this.onload=null;this.rel='stylesheet'",
+  });
+
+  const preloadLink = `<link ${serializeAttributes(attrs)}>`;
+
+  return `${preloadLink}`;
+}
+
+function applyScriptCustomAttributes(html, builtScriptFile, sourceScriptAttributes) {
+  if (!builtScriptFile || !sourceScriptAttributes || sourceScriptAttributes.size === 0) {
+    return html;
+  }
+
+  const targetPath = normalizeComparableAssetPath(builtScriptFile);
+  if (!targetPath) {
+    return html;
+  }
+
+  return html.replace(
+    /<script\s+[^>]*\btype=["']module["'][^>]*\bsrc=["']([^"']+)["'][^>]*>/i,
+    (fullTag, src) => {
+      if (!isSameAssetPath(src, targetPath)) {
+        return fullTag;
+      }
+
+      const existingAttrs = parseTagAttributes(fullTag);
+      for (const [name, attr] of sourceScriptAttributes) {
+        if (!existingAttrs.has(name)) {
+          existingAttrs.set(name, attr);
+        }
+      }
+
+      return `<script ${serializeAttributes(existingAttrs)}>`;
+    },
+  );
 }
 
 function resolveClientEntryChunk(manifest, entryPath) {
@@ -72,6 +225,16 @@ function resolveClientEntryChunk(manifest, entryPath) {
   return null;
 }
 
+function resolveManifestChunk(manifest, chunkId) {
+  if (!chunkId) {
+    return null;
+  }
+
+  return (
+    manifest[chunkId] ?? manifest[`/${chunkId}`] ?? manifest[chunkId.replace(/^\//, "")] ?? null
+  );
+}
+
 function collectClientAssets(manifest, entryChunk) {
   const files = new Set();
   const visited = new Set();
@@ -96,7 +259,11 @@ function collectClientAssets(manifest, entryChunk) {
     }
 
     for (const imported of chunk.imports ?? []) {
-      visit(manifest[imported]);
+      visit(resolveManifestChunk(manifest, imported));
+    }
+
+    for (const dynamicImported of chunk.dynamicImports ?? []) {
+      visit(resolveManifestChunk(manifest, dynamicImported));
     }
   }
 
@@ -104,7 +271,68 @@ function collectClientAssets(manifest, entryChunk) {
   return files;
 }
 
+function normalizeEmittedAssetPath(filePath) {
+  if (!filePath || /^(https?:)?\/\//i.test(filePath) || filePath.startsWith("data:")) {
+    return null;
+  }
+
+  const noQuery = filePath.split(/[?#]/, 1)[0] ?? filePath;
+  const normalized = noQuery.replace(/^\/+/, "");
+  const assetsMatch = normalized.match(/(^|\/)assets\/[^/]+\.js$/i);
+
+  if (assetsMatch) {
+    const idx = normalized.lastIndexOf("assets/");
+    return normalized.slice(idx);
+  }
+
+  return normalized;
+}
+
+async function collectWorkerAssetsFromBuiltScripts(outDirPath, clientFiles) {
+  const workerFiles = new Set();
+  const scriptFiles = [...clientFiles]
+    .map((file) => file.split(/[?#]/, 1)[0] ?? file)
+    .filter((filePath) => filePath.endsWith(".js"));
+
+  const workerCtorPatterns = [
+    /\bnew\s+(?:Worker|SharedWorker)\s*\(\s*new\s+URL\(\s*["'`]([^"'`]+?\.js(?:\?[^"'`]*)?)["'`]\s*,\s*import\.meta\.url\s*\)/g,
+    /\bnew\s+(?:Worker|SharedWorker)\s*\(\s*["'`]([^"'`]+?\.js(?:\?[^"'`]*)?)["'`]/g,
+  ];
+
+  for (const scriptFile of scriptFiles) {
+    const normalizedScriptPath = normalizeEmittedAssetPath(scriptFile);
+    if (!normalizedScriptPath) {
+      continue;
+    }
+
+    const absScriptPath = path.join(outDirPath, normalizedScriptPath);
+
+    let scriptContent = "";
+    try {
+      scriptContent = await fs.readFile(absScriptPath, "utf8");
+    } catch {
+      continue;
+    }
+
+    for (const pattern of workerCtorPatterns) {
+      for (const match of scriptContent.matchAll(pattern)) {
+        const rawWorkerPath = match[1];
+        const normalizedWorkerPath = normalizeEmittedAssetPath(rawWorkerPath);
+        if (!normalizedWorkerPath) {
+          continue;
+        }
+
+        workerFiles.add(normalizedWorkerPath);
+      }
+    }
+  }
+
+  return workerFiles;
+}
+
 function applyAssetLinks(html, clientFiles) {
+  const existingAssetRefs = collectExistingAssetReferences(html);
+
   const cssFiles = [...clientFiles]
     .map((file) => file.split(/[?#]/, 1)[0] ?? file)
     .filter((filePath) => filePath.endsWith(".css"));
@@ -126,7 +354,7 @@ function applyAssetLinks(html, clientFiles) {
           return fullTag;
         }
 
-        return inferAssetLinkTag(href);
+        return applyManagedStylesheetTag(fullTag, href);
       },
     );
   }
@@ -137,6 +365,11 @@ function applyAssetLinks(html, clientFiles) {
   for (const file of clientFiles) {
     if (seen.has(file)) continue;
     seen.add(file);
+
+    const alreadyReferenced = [...existingAssetRefs].some((ref) => isSameAssetPath(ref, file));
+    if (alreadyReferenced) {
+      continue;
+    }
 
     const tag = inferAssetLinkTag(file);
     if (!tag) continue;
@@ -153,8 +386,10 @@ function applyAssetLinks(html, clientFiles) {
 
 try {
   const template = await fs.readFile(indexHtmlPath, "utf8");
+  const sourceIndexHtml = await fs.readFile(sourceIndexHtmlPath, "utf8").catch(() => "");
   const manifestRaw = await fs.readFile(manifestPath, "utf8");
   const manifest = JSON.parse(manifestRaw);
+  const sourceScriptAttributes = collectSourceScriptAttributes(sourceIndexHtml);
 
   const { render } = await vite.ssrLoadModule("/src/entry-server.tsx");
 
@@ -164,7 +399,14 @@ try {
 
   const appHtml = await render();
   const clientEntryChunk = resolveClientEntryChunk(manifest, "src/main.tsx");
-  const clientFiles = clientEntryChunk ? collectClientAssets(manifest, clientEntryChunk) : [];
+  const clientFiles = clientEntryChunk
+    ? collectClientAssets(manifest, clientEntryChunk)
+    : new Set();
+  const workerFiles = await collectWorkerAssetsFromBuiltScripts(outDir, clientFiles);
+
+  for (const workerFile of workerFiles) {
+    clientFiles.add(workerFile);
+  }
 
   const rootTagPattern = /<div\s+id=["']root["']\s*>\s*<\/div>/i;
 
@@ -180,6 +422,9 @@ try {
   if (preloadLinks) {
     html = html.replace("</head>", `${preloadLinks}</head>`);
   }
+
+  const entryScriptAttrs = sourceScriptAttributes.get("src/main.tsx");
+  html = applyScriptCustomAttributes(html, clientEntryChunk?.file, entryScriptAttrs);
 
   html = await minifyHtml(html, {
     collapseWhitespace: true,

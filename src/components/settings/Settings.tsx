@@ -119,6 +119,28 @@ function SettingsNumberInput({
   );
 }
 
+interface SettingsToggleInputProps {
+  id: string;
+  label: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}
+
+function SettingsToggleInput({ id, label, checked, onChange }: SettingsToggleInputProps) {
+  return (
+    <label className={styles.settingsToggleField} htmlFor={id}>
+      <span className={styles.settingsLabel}>{label}</span>
+      <input
+        id={id}
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className={styles.settingsToggleInput}
+      />
+    </label>
+  );
+}
+
 function SettingsContent({ children }: { children: ReactNode }) {
   return <div className={styles.settingsContent}>{children}</div>;
 }
@@ -139,7 +161,7 @@ function SettingsResetButton() {
     <button
       type="button"
       onClick={onReset}
-      className="app-button app-button--danger"
+      className={cx("app-button", styles.resetButton)}
       title="Clear stored settings/history and reset"
     >
       Reset App Data
@@ -154,6 +176,7 @@ export const Settings = {
   Header: SettingsHeader,
   Content: SettingsContent,
   NumberInput: SettingsNumberInput,
+  ToggleInput: SettingsToggleInput,
   Footnote: SettingsFootnote,
   ResetButton: SettingsResetButton,
 };

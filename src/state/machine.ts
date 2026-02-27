@@ -36,6 +36,7 @@ export type MachineEvent =
   | { type: "STOP" }
   | { type: "OPEN_SETTINGS" }
   | { type: "CLOSE_SETTINGS" }
+  | { type: "TOGGLE_SOUND_EFFECTS" }
   | { type: "RESET" }
   | { type: "RUN_FINISHED" }
   | { type: "CHANGE_INPUT"; field: SettingsInputField; value: string }
@@ -207,6 +208,23 @@ export function machineReducer(state: MachineState, event: MachineEvent): Machin
               },
             },
           };
+
+        case "TOGGLE_SOUND_EFFECTS": {
+          const nextConfig = {
+            ...state.context.config,
+            soundEffectsEnabled: !state.context.config.soundEffectsEnabled,
+          };
+
+          persistState({ config: nextConfig });
+
+          return {
+            ...state,
+            context: {
+              ...state.context,
+              config: nextConfig,
+            },
+          };
+        }
 
         case "COMMIT_INPUT": {
           switch (event.field) {

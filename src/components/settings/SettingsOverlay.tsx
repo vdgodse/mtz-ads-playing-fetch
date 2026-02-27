@@ -17,6 +17,7 @@ export function SettingsOverlay({ state, dispatch, onReset }: SettingsOverlayPro
   const [isVisible, setIsVisible] = useState(isSettingsOpen);
   const panelRef = useRef<HTMLElement | null>(null);
 
+  // TODO: extract to a custom hook
   useEffect(() => {
     if (isSettingsOpen) {
       // oxlint-disable-next-line react-hooks-js/set-state-in-effect
@@ -125,6 +126,12 @@ export function SettingsOverlay({ state, dispatch, onReset }: SettingsOverlayPro
               step={1}
               onChange={(value) => dispatch({ type: "CHANGE_INPUT", field: "historySize", value })}
               onCommit={() => dispatch({ type: "COMMIT_INPUT", field: "historySize" })}
+            />
+            <Settings.ToggleInput
+              id="soundEffects"
+              label="Sound effects & final announcement"
+              checked={state.context.config.soundEffectsEnabled}
+              onChange={() => dispatch({ type: "TOGGLE_SOUND_EFFECTS" })}
             />
             <Settings.Footnote />
             <Settings.ResetButton />

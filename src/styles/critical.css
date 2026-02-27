@@ -9,13 +9,16 @@
 body {
   margin: 0;
   padding: 0;
+  background-color: hsl(245deg 52% 12%);
 }
 
 .app-shell {
+  position: relative;
   min-height: 100vh;
   display: grid;
   grid-template-rows: auto 1fr;
   padding: 24px;
+  overflow: clip;
   font-family:
     ui-sans-serif,
     system-ui,
@@ -27,20 +30,16 @@ body {
     Apple Color Emoji,
     Segoe UI Emoji;
   color: #e7e9ee;
-  background-image: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
-  animation: gradientAnimation 16s linear infinite;
-  background-size: 400% 400%;
+  background-color: hsl(245deg 52% 12%);
 }
 
-.ambient-noise-overlay {
+.animated-background-canvas {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  pointer-events: none;
   z-index: 0;
-  opacity: 0.11;
-  mix-blend-mode: overlay;
+  pointer-events: none;
 }
 
 .app-button {
@@ -68,17 +67,13 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.14);
 }
 
-.app-button--danger {
-  border: 1px solid rgba(255, 90, 90, 0.45);
-}
-
 .settings-toggle-button.is-hidden {
   visibility: hidden;
 }
 
 .top-bar {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -93,7 +88,7 @@ body {
 
 .center-stage-layout {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   display: grid;
   place-items: center;
   gap: 18px;
@@ -116,22 +111,12 @@ body {
   font-weight: 800;
   letter-spacing: 6px;
   line-height: 1;
-  text-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  color: hsl(222.18deg 29.97% 74.18% / 90%);
   user-select: none;
+  transform-origin: 50% 64%;
+  will-change: transform, filter;
 }
 
 .reload-action-row {
   margin-top: 60px;
-}
-
-@keyframes gradientAnimation {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
 }
