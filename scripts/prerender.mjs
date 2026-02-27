@@ -167,62 +167,164 @@ function applyManagedStylesheetTag(fullTag, href) {
   return `${preloadLink}`;
 }
 
-function applyScriptCustomAttributes(html, builtScriptFile, sourceScriptAttributes) {
-  if (!builtScriptFile || !sourceScriptAttributes || sourceScriptAttributes.size === 0) {
-    return html;
+function buildBuiltToSourceScriptMap(sourceToBuiltScriptMap) {
+  const builtToSource = new Map();
+
+  for (const [sourcePath, builtPath] of sourceToBuiltScriptMap) {
+    const normalizedBuiltPath = normalizeComparableAssetPath(builtPath);
+    if (!normalizedBuiltPath || builtToSource.has(normalizedBuiltPath)) {
+      continue;
+    }
+
+    builtToSource.set(normalizedBuiltPath, sourcePath);
   }
 
-  const targetPath = normalizeComparableAssetPath(builtScriptFile);
-  if (!targetPath) {
-    return html;
-  }
-
-  return html.replace(
-    /<script\s+[^>]*\btype=["']module["'][^>]*\bsrc=["']([^"']+)["'][^>]*>/i,
-    (fullTag, src) => {
-      if (!isSameAssetPath(src, targetPath)) {
-        return fullTag;
-      }
-
-      const existingAttrs = parseTagAttributes(fullTag);
-      for (const [name, attr] of sourceScriptAttributes) {
-        if (!existingAttrs.has(name)) {
-          existingAttrs.set(name, attr);
-        }
-      }
-
-      return `<script ${serializeAttributes(existingAttrs)}>`;
-    },
-  );
+  return builtToSource;
 }
 
-function resolveClientEntryChunk(manifest, entryPath) {
-  const candidates = [entryPath, `/${entryPath}`];
+function applyScriptCustomAttributes(html, sourceScriptAttributes, builtToSourceScriptMap) {
+  if (!sourceScriptAttributes || sourceScriptAttributes.size === 0) {
+    return html;
+  }
+
+  if (!builtToSourceScriptMap || builtToSourceScriptMap.size === 0) {
+    return html;
+  }
+
+  return html.replace(/<script\s+[^>]*\bsrc=["']([^"']+)["'][^>]*>/gi, (fullTag, src) => {
+    const attrs = parseTagAttributes(fullTag);
+    const typeAttr = attrs.get("type");
+    const isModule = (typeAttr?.value ?? "").toLowerCase() === "module";
+
+    if (!isModule) {
+      return fullTag;
+    }
+
+    const normalizedSrc = normalizeComparableAssetPath(src);
+    const sourcePath = normalizedSrc ? builtToSourceScriptMap.get(normalizedSrc) : null;
+
+    if (!sourcePath) {
+      return fullTag;
+    }
+
+    const attrsToApply = sourceScriptAttributes.get(sourcePath);
+    if (!attrsToApply || attrsToApply.size === 0) {
+      return fullTag;
+    }
+
+    const existingAttrs = parseTagAttributes(fullTag);
+    for (const [name, attr] of attrsToApply) {
+      if (!existingAttrs.has(name)) {
+        existingAttrs.set(name, attr);
+      }
+    }
+
+    return `<script ${serializeAttributes(existingAttrs)}>`;
+  });
+}
+
+function collectLocalSourceModuleScripts(html) {
+  const scriptPaths = new Set();
+  const scriptTagPattern = /<script\s+[^>]*\bsrc=["']([^"']+)["'][^>]*>/gi;
+
+  for (const match of html.matchAll(scriptTagPattern)) {
+    const fullTag = match[0];
+    const src = match[1];
+    if (!fullTag || !src) {
+      continue;
+    }
+
+    const attrs = parseTagAttributes(fullTag);
+    const typeAttr = attrs.get("type");
+    const isModule = (typeAttr?.value ?? "").toLowerCase() === "module";
+    if (!isModule) {
+      continue;
+    }
+
+    if (/^(https?:)?\/\//i.test(src) || src.startsWith("data:")) {
+      continue;
+    }
+
+    const normalized = normalizeComparableAssetPath(src);
+    if (!normalized) {
+      continue;
+    }
+
+    scriptPaths.add(normalized);
+  }
+
+  return scriptPaths;
+}
+
+function resolveChunkBySourcePath(manifest, sourcePath) {
+  if (!sourcePath) {
+    return null;
+  }
+
+  const candidates = [sourcePath, `/${sourcePath}`];
   for (const key of candidates) {
     const chunk = manifest[key];
-    if (chunk?.isEntry) {
+    if (chunk?.file) {
       return chunk;
     }
   }
 
   for (const chunk of Object.values(manifest)) {
-    if (chunk?.isEntry && chunk?.src === entryPath) {
-      return chunk;
-    }
-  }
-
-  const htmlEntry = manifest["index.html"];
-  if (htmlEntry?.isEntry) {
-    return htmlEntry;
-  }
-
-  for (const chunk of Object.values(manifest)) {
-    if (chunk?.isEntry) {
+    if (chunk?.src === sourcePath && chunk?.file) {
       return chunk;
     }
   }
 
   return null;
+}
+
+function rewriteSourceModuleScriptSrcs(html, sourceToBuiltScriptMap) {
+  if (!sourceToBuiltScriptMap || sourceToBuiltScriptMap.size === 0) {
+    return html;
+  }
+
+  return html.replace(/<script\s+[^>]*\bsrc=["']([^"']+)["'][^>]*>/gi, (fullTag, src) => {
+    const attrs = parseTagAttributes(fullTag);
+    const typeAttr = attrs.get("type");
+    const isModule = (typeAttr?.value ?? "").toLowerCase() === "module";
+
+    if (!isModule) {
+      return fullTag;
+    }
+
+    const normalizedSrc = normalizeComparableAssetPath(src);
+    if (!normalizedSrc) {
+      return fullTag;
+    }
+
+    const nextSrc = sourceToBuiltScriptMap.get(normalizedSrc);
+    if (!nextSrc) {
+      return fullTag;
+    }
+
+    attrs.set("src", { name: "src", hasValue: true, value: nextSrc });
+
+    return `<script ${serializeAttributes(attrs)}>`;
+  });
+}
+
+function resolveManifestEntryChunks(manifest) {
+  const entries = [];
+
+  const htmlEntry = manifest["index.html"];
+  if (htmlEntry?.isEntry) {
+    entries.push(htmlEntry);
+  }
+
+  for (const chunk of Object.values(manifest)) {
+    if (!chunk?.isEntry || entries.includes(chunk)) {
+      continue;
+    }
+
+    entries.push(chunk);
+  }
+
+  return entries;
 }
 
 function resolveManifestChunk(manifest, chunkId) {
@@ -269,6 +371,32 @@ function collectClientAssets(manifest, entryChunk) {
 
   visit(entryChunk);
   return files;
+}
+
+function collectClientAssetsFromSourceScripts(manifest, sourceScripts) {
+  const allFiles = new Set();
+  const resolvedChunks = [];
+
+  for (const sourceScript of sourceScripts) {
+    const chunk = resolveChunkBySourcePath(manifest, sourceScript);
+    if (!chunk || resolvedChunks.includes(chunk)) {
+      continue;
+    }
+
+    resolvedChunks.push(chunk);
+  }
+
+  if (resolvedChunks.length === 0) {
+    resolvedChunks.push(...resolveManifestEntryChunks(manifest));
+  }
+
+  for (const chunk of resolvedChunks) {
+    for (const file of collectClientAssets(manifest, chunk)) {
+      allFiles.add(file);
+    }
+  }
+
+  return allFiles;
 }
 
 function normalizeEmittedAssetPath(filePath) {
@@ -389,6 +517,15 @@ try {
   const sourceIndexHtml = await fs.readFile(sourceIndexHtmlPath, "utf8").catch(() => "");
   const manifestRaw = await fs.readFile(manifestPath, "utf8");
   const manifest = JSON.parse(manifestRaw);
+  const sourceModuleScripts = collectLocalSourceModuleScripts(sourceIndexHtml);
+  const sourceToBuiltScriptMap = new Map();
+  for (const sourceScriptPath of sourceModuleScripts) {
+    const chunk = resolveChunkBySourcePath(manifest, sourceScriptPath);
+    if (chunk?.file) {
+      sourceToBuiltScriptMap.set(sourceScriptPath, chunk.file);
+    }
+  }
+  const builtToSourceScriptMap = buildBuiltToSourceScriptMap(sourceToBuiltScriptMap);
   const sourceScriptAttributes = collectSourceScriptAttributes(sourceIndexHtml);
 
   const { render } = await vite.ssrLoadModule("/src/entry-server.tsx");
@@ -398,10 +535,7 @@ try {
   }
 
   const appHtml = await render();
-  const clientEntryChunk = resolveClientEntryChunk(manifest, "src/main.tsx");
-  const clientFiles = clientEntryChunk
-    ? collectClientAssets(manifest, clientEntryChunk)
-    : new Set();
+  const clientFiles = collectClientAssetsFromSourceScripts(manifest, sourceModuleScripts);
   const workerFiles = await collectWorkerAssetsFromBuiltScripts(outDir, clientFiles);
 
   for (const workerFile of workerFiles) {
@@ -423,8 +557,8 @@ try {
     html = html.replace("</head>", `${preloadLinks}</head>`);
   }
 
-  const entryScriptAttrs = sourceScriptAttributes.get("src/main.tsx");
-  html = applyScriptCustomAttributes(html, clientEntryChunk?.file, entryScriptAttrs);
+  html = rewriteSourceModuleScriptSrcs(html, sourceToBuiltScriptMap);
+  html = applyScriptCustomAttributes(html, sourceScriptAttributes, builtToSourceScriptMap);
 
   html = await minifyHtml(html, {
     collapseWhitespace: true,
