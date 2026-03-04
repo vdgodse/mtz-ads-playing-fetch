@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 
 import { TopBar } from "./components/layout/TopBar";
 import { AnimatedBackgroundCanvas } from "./components/layout/AnimatedBackgroundCanvas";
@@ -36,7 +36,7 @@ function App() {
   const audioContextRef = useRef<AudioContext | null>(null);
   const lastTickAtRef = useRef(0);
 
-  const ensureAudioContext = useCallback(() => {
+  const ensureAudioContext = () => {
     if (audioContextRef.current) {
       return audioContextRef.current;
     }
@@ -50,9 +50,10 @@ function App() {
 
     audioContextRef.current = new AudioContextCtor();
     return audioContextRef.current;
-  }, []);
+  };
 
-  const unlockAudioContext = useCallback(() => {
+  // oxlint-disable-next-line react-hooks-js/exhaustive-deps - since we are using react compiler
+  const unlockAudioContext = () => {
     const context = ensureAudioContext();
     if (!context) {
       return;
@@ -61,72 +62,69 @@ function App() {
     if (context.state !== "running") {
       void context.resume();
     }
-  }, [ensureAudioContext]);
+  };
 
-  const playRunningTick = useCallback(
-    (letter: string) => {
-      if (!state.context.config.soundEffectsEnabled) {
-        return;
-      }
+  const playRunningTick = (letter: string) => {
+    if (!state.context.config.soundEffectsEnabled) {
+      return;
+    }
 
-      const context = ensureAudioContext();
-      if (!context || context.state !== "running") {
-        return;
-      }
+    const context = ensureAudioContext();
+    if (!context || context.state !== "running") {
+      return;
+    }
 
-      const now = context.currentTime;
-      if (now - lastTickAtRef.current < RUNNING_TICK_INTERVAL_S) {
-        return;
-      }
+    const now = context.currentTime;
+    if (now - lastTickAtRef.current < RUNNING_TICK_INTERVAL_S) {
+      return;
+    }
 
-      lastTickAtRef.current = now;
+    lastTickAtRef.current = now;
 
-      const noteSteps = [0, 2, 4, 7, 9] as const;
-      const letterIndex = (letter.charCodeAt(0) - 65 + 26) % 26;
-      const step = noteSteps[letterIndex % noteSteps.length];
-      const octave = Math.floor(letterIndex / noteSteps.length) % 2;
-      const frequency = 880 * 2 ** ((step + octave * 12) / 12);
+    const noteSteps = [0, 2, 4, 7, 9] as const;
+    const letterIndex = (letter.charCodeAt(0) - 65 + 26) % 26;
+    const step = noteSteps[letterIndex % noteSteps.length];
+    const octave = Math.floor(letterIndex / noteSteps.length) % 2;
+    const frequency = 880 * 2 ** ((step + octave * 12) / 12);
 
-      const bodyOsc = context.createOscillator();
-      const shimmerOsc = context.createOscillator();
-      const bodyGain = context.createGain();
-      const shimmerGain = context.createGain();
-      const masterGain = context.createGain();
-      const highpass = context.createBiquadFilter();
+    const bodyOsc = context.createOscillator();
+    const shimmerOsc = context.createOscillator();
+    const bodyGain = context.createGain();
+    const shimmerGain = context.createGain();
+    const masterGain = context.createGain();
+    const highpass = context.createBiquadFilter();
 
-      bodyOsc.type = "sine";
-      shimmerOsc.type = "triangle";
-      bodyOsc.frequency.setValueAtTime(frequency, now);
-      shimmerOsc.frequency.setValueAtTime(frequency * 2, now);
+    bodyOsc.type = "sine";
+    shimmerOsc.type = "triangle";
+    bodyOsc.frequency.setValueAtTime(frequency, now);
+    shimmerOsc.frequency.setValueAtTime(frequency * 2, now);
 
-      highpass.type = "highpass";
-      highpass.frequency.setValueAtTime(780, now);
-      highpass.Q.setValueAtTime(0.7, now);
+    highpass.type = "highpass";
+    highpass.frequency.setValueAtTime(780, now);
+    highpass.Q.setValueAtTime(0.7, now);
 
-      bodyGain.gain.setValueAtTime(0.0001, now);
-      bodyGain.gain.exponentialRampToValueAtTime(0.013, now + 0.003);
-      bodyGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.03);
+    bodyGain.gain.setValueAtTime(0.0001, now);
+    bodyGain.gain.exponentialRampToValueAtTime(0.013, now + 0.003);
+    bodyGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.03);
 
-      shimmerGain.gain.setValueAtTime(0.0001, now);
-      shimmerGain.gain.exponentialRampToValueAtTime(0.0045, now + 0.0025);
-      shimmerGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.022);
+    shimmerGain.gain.setValueAtTime(0.0001, now);
+    shimmerGain.gain.exponentialRampToValueAtTime(0.0045, now + 0.0025);
+    shimmerGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.022);
 
-      masterGain.gain.setValueAtTime(0.9, now);
+    masterGain.gain.setValueAtTime(0.9, now);
 
-      bodyOsc.connect(bodyGain);
-      shimmerOsc.connect(shimmerGain);
-      bodyGain.connect(masterGain);
-      shimmerGain.connect(masterGain);
-      masterGain.connect(highpass);
-      highpass.connect(context.destination);
+    bodyOsc.connect(bodyGain);
+    shimmerOsc.connect(shimmerGain);
+    bodyGain.connect(masterGain);
+    shimmerGain.connect(masterGain);
+    masterGain.connect(highpass);
+    highpass.connect(context.destination);
 
-      bodyOsc.start(now);
-      shimmerOsc.start(now);
-      bodyOsc.stop(now + 0.034);
-      shimmerOsc.stop(now + 0.028);
-    },
-    [ensureAudioContext, state.context.config.soundEffectsEnabled],
-  );
+    bodyOsc.start(now);
+    shimmerOsc.start(now);
+    bodyOsc.stop(now + 0.034);
+    shimmerOsc.stop(now + 0.028);
+  };
 
   // Focus Start button when entering idle mode
   useEffect(() => {
