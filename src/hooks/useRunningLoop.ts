@@ -1,10 +1,9 @@
 import { useEffect, useEffectEvent, type RefObject } from "react";
 
+import { LETTERS } from "../config/constants";
 import type { MachineEvent, MachineState } from "../state/machine";
 import { randomFrom } from "../utils/random";
 import { useLatest } from "./useLatest";
-
-const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
 interface UseRunningLoopParams {
   mode: MachineState["mode"];
@@ -49,6 +48,12 @@ export function useRunningLoop({
 
     timeoutId = window.setTimeout(() => {
       if (runTokenRef.current !== myToken) return;
+      // Cancel RAF before dispatching to prevent race condition where
+      // a pending tick overwrites the final letter after React re-renders
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
       dispatch({ type: "RUN_FINISHED" });
     }, delayMs);
 

@@ -1,3 +1,4 @@
+import { LETTERS } from "../config/constants";
 import {
   type Config,
   DEFAULT_CONFIG,
@@ -14,7 +15,7 @@ export type Mode = "idle" | "running" | "settings";
 export type MachineContext = {
   config: Config;
   history: string[];
-  lastFinalLetter: string | null;
+  lastFinalLetter: string;
   runDelayMs: number;
   inputs: {
     duration: string;
@@ -37,25 +38,27 @@ export type MachineEvent =
   | { type: "OPEN_SETTINGS" }
   | { type: "CLOSE_SETTINGS" }
   | { type: "TOGGLE_SOUND_EFFECTS" }
-  | { type: "RESET" }
+  | { type: "RESET"; letter: string }
   | { type: "RUN_FINISHED" }
   | { type: "CHANGE_INPUT"; field: SettingsInputField; value: string }
   | { type: "COMMIT_INPUT"; field: SettingsInputField };
-
-const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
 function computeRunDelayMs(config: Config): number {
   const jitterOffset = Math.floor(Math.random() * (config.jitter * 2 + 1)) - config.jitter;
   return Math.max(0, config.durationMs + jitterOffset);
 }
 
-export function createInitialState(config: Config, history: string[]): MachineState {
+export function createInitialState(
+  config: Config,
+  history: string[],
+  initialLetter: string,
+): MachineState {
   return {
     mode: "idle",
     context: {
       config,
       history,
-      lastFinalLetter: null,
+      lastFinalLetter: initialLetter,
       runDelayMs: 0,
       inputs: {
         duration: String(config.durationMs),
@@ -94,7 +97,7 @@ export function machineReducer(state: MachineState, event: MachineEvent): Machin
             context: {
               config: DEFAULT_CONFIG,
               history: [],
-              lastFinalLetter: null,
+              lastFinalLetter: event.letter,
               runDelayMs: 0,
               inputs: {
                 duration: String(DEFAULT_CONFIG.durationMs),
@@ -146,7 +149,7 @@ export function machineReducer(state: MachineState, event: MachineEvent): Machin
             context: {
               config: DEFAULT_CONFIG,
               history: [],
-              lastFinalLetter: null,
+              lastFinalLetter: event.letter,
               runDelayMs: 0,
               inputs: {
                 duration: String(DEFAULT_CONFIG.durationMs),
@@ -186,7 +189,7 @@ export function machineReducer(state: MachineState, event: MachineEvent): Machin
             context: {
               config: DEFAULT_CONFIG,
               history: [],
-              lastFinalLetter: null,
+              lastFinalLetter: event.letter,
               runDelayMs: 0,
               inputs: {
                 duration: String(DEFAULT_CONFIG.durationMs),

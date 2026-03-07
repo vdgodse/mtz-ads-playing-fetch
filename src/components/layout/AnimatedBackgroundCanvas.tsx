@@ -1,31 +1,14 @@
 import { useEffect, useRef } from "react";
-
-type WorkerMessage =
-  | {
-      type: "init";
-      canvas: OffscreenCanvas;
-      width: number;
-      height: number;
-      dpr: number;
-    }
-  | {
-      type: "resize";
-      width: number;
-      height: number;
-      dpr: number;
-    }
-  | {
-      type: "pointer-move";
-      x: number;
-      y: number;
-    }
-  | {
-      type: "pointer-tap";
-      x: number;
-      y: number;
-    }
-  | { type: "pause" }
-  | { type: "resume" };
+import { useBackgroundWorker } from "../../hooks/useBackgroundWorker";
+import { usePointerTracking } from "../../hooks/usePointerTracking";
+import { useResizeObserver } from "../../hooks/useResizeObserver";
+import { useVisibilityPause } from "../../hooks/useVisibilityPause";
+import {
+  getDimensions,
+  getDpr,
+  isOffscreenCanvasSupported,
+  prefersReducedMotion,
+} from "../../utils/dom";
 
 type AnimatedBackgroundCanvasProps = {
   onEnhancedModeChange: (isEnhanced: boolean) => void;
@@ -33,182 +16,94 @@ type AnimatedBackgroundCanvasProps = {
 
 export function AnimatedBackgroundCanvas({ onEnhancedModeChange }: AnimatedBackgroundCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const containerRef = useRef<Element | null>(null);
+  const offscreenTransferredRef = useRef(false);
+  const isInitializedRef = useRef(false);
 
+  const { createWorker, terminateWorker, postMessage } = useBackgroundWorker();
+
+  // Initialize worker and transfer canvas control
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) {
       return;
     }
 
-    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (prefersReducedMotion) {
+    // transferControlToOffscreen can only be called once per canvas element.
+    // In React Strict Mode (dev), effects run twice, so we need to guard against this.
+    if (offscreenTransferredRef.current) {
       return;
     }
 
-    const isOffscreenSupported =
-      typeof Worker !== "undefined" &&
-      typeof OffscreenCanvas !== "undefined" &&
-      "transferControlToOffscreen" in HTMLCanvasElement.prototype;
-
-    if (!isOffscreenSupported) {
+    if (prefersReducedMotion() || !isOffscreenCanvasSupported()) {
       return;
     }
 
-    const worker = new Worker(new URL("../../workers/background.worker.ts", import.meta.url), {
-      type: "module",
-    });
+    const parent = canvas.parentElement;
+    if (!parent) {
+      return;
+    }
 
-    let resizeRafId: number | null = null;
-    let pointerRafId: number | null = null;
-    let lastResizeSignature = "";
-    let pointerPending: { x: number; y: number } | null = null;
+    offscreenTransferredRef.current = true;
+    isInitializedRef.current = true;
+    containerRef.current = parent;
 
-    const postResize = () => {
-      const parent = canvas.parentElement;
-      if (!parent) {
-        return;
-      }
+    const worker = createWorker();
+    const offscreenCanvas = canvas.transferControlToOffscreen();
+    const { width, height } = getDimensions(parent);
 
-      const rect = parent.getBoundingClientRect();
-      const width = Math.max(1, Math.floor(rect.width));
-      const height = Math.max(1, Math.floor(rect.height));
-      const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
-
-      const resizeMessage: WorkerMessage = {
-        type: "resize",
+    worker.postMessage(
+      {
+        type: "init",
+        canvas: offscreenCanvas,
         width,
         height,
-        dpr,
-      };
-
-      const signature = `${width}x${height}@${dpr}`;
-      if (signature === lastResizeSignature) {
-        return;
-      }
-
-      lastResizeSignature = signature;
-
-      worker.postMessage(resizeMessage);
-    };
-
-    const offscreenCanvas = canvas.transferControlToOffscreen();
-    const parent = canvas.parentElement;
-    const parentRect = parent?.getBoundingClientRect();
-
-    const initMessage: WorkerMessage = {
-      type: "init",
-      canvas: offscreenCanvas,
-      width: Math.max(1, Math.floor(parentRect?.width ?? window.innerWidth)),
-      height: Math.max(1, Math.floor(parentRect?.height ?? window.innerHeight)),
-      dpr: Math.max(1, Math.min(2, window.devicePixelRatio || 1)),
-    };
-
-    worker.postMessage(initMessage, [offscreenCanvas]);
+        dpr: getDpr(),
+      },
+      [offscreenCanvas],
+    );
     onEnhancedModeChange(true);
-
-    const postPointerMove = (x: number, y: number) => {
-      const pointerMessage: WorkerMessage = {
-        type: "pointer-move",
-        x,
-        y,
-      };
-      worker.postMessage(pointerMessage);
-    };
-
-    const postPointerTap = (x: number, y: number) => {
-      const pointerMessage: WorkerMessage = {
-        type: "pointer-tap",
-        x,
-        y,
-      };
-      worker.postMessage(pointerMessage);
-    };
-
-    const getLocalPointer = (clientX: number, clientY: number) => {
-      const parent = canvas.parentElement;
-      if (!parent) {
-        return null;
-      }
-
-      const rect = parent.getBoundingClientRect();
-      return {
-        x: Math.max(0, Math.min(rect.width, clientX - rect.left)),
-        y: Math.max(0, Math.min(rect.height, clientY - rect.top)),
-      };
-    };
-
-    const handlePointerMove = (event: PointerEvent) => {
-      const local = getLocalPointer(event.clientX, event.clientY);
-      if (!local) {
-        return;
-      }
-
-      pointerPending = local;
-
-      if (pointerRafId !== null) {
-        return;
-      }
-
-      pointerRafId = window.requestAnimationFrame(() => {
-        pointerRafId = null;
-        if (!pointerPending) {
-          return;
-        }
-        postPointerMove(pointerPending.x, pointerPending.y);
-      });
-    };
-
-    const handlePointerDown = (event: PointerEvent) => {
-      const local = getLocalPointer(event.clientX, event.clientY);
-      if (!local) {
-        return;
-      }
-
-      postPointerTap(local.x, local.y);
-      postPointerMove(local.x, local.y);
-    };
-
-    const resizeObserver = new ResizeObserver(() => {
-      if (resizeRafId !== null) {
-        window.cancelAnimationFrame(resizeRafId);
-      }
-
-      resizeRafId = window.requestAnimationFrame(() => {
-        resizeRafId = null;
-        postResize();
-      });
-    });
-
-    if (parent) {
-      resizeObserver.observe(parent);
-    }
-
-    const handleVisibilityChange = () => {
-      const message: WorkerMessage = {
-        type: document.hidden ? "pause" : "resume",
-      };
-      worker.postMessage(message);
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    window.addEventListener("pointermove", handlePointerMove, { passive: true });
-    window.addEventListener("pointerdown", handlePointerDown, { passive: true });
 
     return () => {
       onEnhancedModeChange(false);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      window.removeEventListener("pointermove", handlePointerMove);
-      window.removeEventListener("pointerdown", handlePointerDown);
-      if (resizeRafId !== null) {
-        window.cancelAnimationFrame(resizeRafId);
-      }
-      if (pointerRafId !== null) {
-        window.cancelAnimationFrame(pointerRafId);
-      }
-      resizeObserver.disconnect();
-      worker.terminate();
+      terminateWorker();
+      isInitializedRef.current = false;
     };
-  }, [onEnhancedModeChange]);
+  }, [createWorker, terminateWorker, onEnhancedModeChange]);
+
+  // Resize handling
+  const handleResize = (width: number, height: number, dpr: number) => {
+    if (!isInitializedRef.current) return;
+    postMessage({ type: "resize", width, height, dpr });
+  };
+
+  useResizeObserver(containerRef, handleResize);
+
+  // Pointer tracking
+  const handlePointerMove = (x: number, y: number) => {
+    if (!isInitializedRef.current) return;
+    postMessage({ type: "pointer-move", x, y });
+  };
+
+  const handlePointerTap = (x: number, y: number) => {
+    if (!isInitializedRef.current) return;
+    postMessage({ type: "pointer-tap", x, y });
+  };
+
+  usePointerTracking(containerRef, handlePointerMove, handlePointerTap);
+
+  // Visibility pause/resume
+  const handlePause = () => {
+    if (!isInitializedRef.current) return;
+    postMessage({ type: "pause" });
+  };
+
+  const handleResume = () => {
+    if (!isInitializedRef.current) return;
+    postMessage({ type: "resume" });
+  };
+
+  useVisibilityPause(handlePause, handleResume);
 
   return <canvas aria-hidden="true" className="animated-background-canvas" ref={canvasRef} />;
 }

@@ -18,10 +18,20 @@ export function LetterStage({
   currentLetterRef,
 }: LetterStageProps) {
   return (
-    <main className="center-stage-layout">
-      <section className="letter-board-container">
-        <article className="letter-display-stage">
-          <div ref={currentLetterRef} className="active-letter-glyph">
+    <main id="main-content" className="center-stage-layout" role="main">
+      <section className="letter-board-container" aria-labelledby="letter-display-heading">
+        <h1 id="letter-display-heading" className="visually-hidden">
+          Letter Display
+        </h1>
+        <div className="letter-display-stage">
+          <div
+            ref={currentLetterRef}
+            className="active-letter-glyph"
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+            aria-label={isRunning ? "Shuffling letters" : `Current letter: ${currentLetter}`}
+          >
             {currentLetter}
           </div>
           <div className="reload-action-row">
@@ -31,12 +41,13 @@ export function LetterStage({
               onClick={onStart}
               disabled={isRunning}
               className="app-button app-button--primary"
-              aria-label="Reload"
+              aria-label={isRunning ? "Shuffling in progress" : "Shuffle to pick a new letter"}
+              aria-busy={isRunning}
             >
               <ReloadIcon />
             </button>
           </div>
-        </article>
+        </div>
       </section>
     </main>
   );

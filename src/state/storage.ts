@@ -1,5 +1,15 @@
-import { CONFIG_STORAGE_KEY, HISTORY_STORAGE_KEY } from "../config/constants";
+import {
+  CONFIG_STORAGE_KEY,
+  HISTORY_STORAGE_KEY,
+  STORAGE_SCHEMA_VERSION,
+} from "../config/constants";
 import { randomFrom } from "../utils/random";
+
+/**
+ * Storage namespace prefix for detecting old versions.
+ * Used by the migration system to find and upgrade legacy data.
+ */
+const STORAGE_NAMESPACE = "mtz-ads-playing-fetch";
 
 export type Config = {
   durationMs: number;
@@ -139,7 +149,62 @@ export function resetPersistentStorage(): void {
   removePersistentItem(HISTORY_STORAGE_KEY);
 }
 
+/**
+ * Detects and removes localStorage keys from older schema versions.
+ * This enables clean migrations when STORAGE_SCHEMA_VERSION is incremented.
+ *
+ * Migration strategy:
+ * 1. When bumping STORAGE_SCHEMA_VERSION, add migration logic here
+ * 2. Read old versioned keys, transform data if needed, write to new keys
+ * 3. Remove old keys to prevent confusion
+ *
+ * @example
+ * // To migrate from v1 to v2:
+ * // 1. Update STORAGE_SCHEMA_VERSION to 2 in constants.ts
+ * // 2. Add migration case in this function:
+ * //    if (version === 1) {
+ * //      const oldConfig = getPersistentItem(`${STORAGE_NAMESPACE}:v1:config`);
+ * //      // Transform and persist to new keys...
+ * //    }
+ */
+function migrateFromOlderVersions(): void {
+  try {
+    const keys = Object.keys(window.localStorage);
+    const namespacePrefix = `${STORAGE_NAMESPACE}:v`;
+
+    for (const key of keys) {
+      if (!key.startsWith(namespacePrefix)) {
+        continue;
+      }
+
+      // Extract version number from key (e.g., "mtz-ads-playing-fetch:v1:config" -> 1)
+      const versionMatch = key.match(new RegExp(`^${STORAGE_NAMESPACE}:v(\\d+):`));
+      const versionString = versionMatch?.[1];
+      if (!versionString) {
+        continue;
+      }
+
+      const version = Number.parseInt(versionString, 10);
+      if (version >= STORAGE_SCHEMA_VERSION) {
+        continue;
+      }
+
+      // Currently no migration needed from v1 -> v1
+      // When STORAGE_SCHEMA_VERSION is bumped, add migration logic here:
+      // if (version === 1) { /* migrate v1 data to current version */ }
+
+      // Remove old versioned keys after migration
+      removePersistentItem(key);
+    }
+  } catch {
+    // Ignore errors during migration (e.g., localStorage unavailable)
+  }
+}
+
 export function loadInitialState(): { config: Config; history: string[] } {
+  // Run migrations before loading to ensure we're reading current version data
+  migrateFromOlderVersions();
+
   const config = loadConfig();
   const rawHistory = loadHistory();
   const history = trimHistory(rawHistory, config.historySize);

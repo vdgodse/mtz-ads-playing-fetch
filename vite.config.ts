@@ -22,6 +22,40 @@ async function collectFilesRecursive(dirPath: string, matcher: RegExp): Promise<
   return nested.flat();
 }
 
+function inlineLayersCssIntoHtml(): Plugin {
+  let resolved: ResolvedConfig;
+
+  return {
+    name: "inline-layers-css-into-html",
+    apply: "build",
+    enforce: "post",
+    configResolved(config) {
+      resolved = config;
+    },
+    async transformIndexHtml(html) {
+      const layersCssPath = path.join(resolved.root, "src", "styles", "layers.css");
+
+      let layersCss = "";
+      try {
+        layersCss = await fs.readFile(layersCssPath, "utf8");
+      } catch {
+        return html;
+      }
+
+      const layersTag = `<style data-layers="true">${layersCss}</style>`;
+
+      // Insert before the first stylesheet (<link rel="stylesheet"> or <style>)
+      const firstStylesheet = html.match(/<link[^>]*rel=["']stylesheet["'][^>]*>|<style[\s>]/);
+      if (firstStylesheet?.index !== undefined) {
+        return html.slice(0, firstStylesheet.index) + layersTag + html.slice(firstStylesheet.index);
+      }
+
+      // Fallback: insert at start of <head>
+      return html.replace("<head>", `<head>${layersTag}`);
+    },
+  };
+}
+
 function inlineCriticalCssIntoHtml(): Plugin {
   let resolved: ResolvedConfig;
 
@@ -167,6 +201,7 @@ export default defineConfig({
     inlineCriticalCssIntoHtml(),
     purgeStylesheets(),
     injectInitialLetterBootstrapScript(),
+    inlineLayersCssIntoHtml(),
   ],
   base: "/mtz-ads-playing-fetch/",
 });

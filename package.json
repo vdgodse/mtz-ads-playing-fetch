@@ -5,13 +5,16 @@
   "scripts": {
     "dev": "vite",
     "build:client": "vite build --manifest",
-    "build": "tsgo && npm run build:client && node scripts/prerender.mjs",
+    "build:css-types": "tcm src -p '**/*.module.{css,scss}' --camelCase",
+    "build": "npm run build:css-types && tsgo && npm run build:client && node scripts/prerender.mjs",
     "preview": "npm run build && vite preview",
     "deploy": "npm run build && gh-pages -d dist -b gh-pages -f",
     "lint": "oxlint --type-aware .",
     "lint:fix": "oxlint --type-aware . --fix",
     "format": "oxfmt . --write",
     "format:check": "oxfmt . --check",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "prepare": "husky"
   },
   "dependencies": {
@@ -19,6 +22,9 @@
     "react-dom": "^19.2.4"
   },
   "devDependencies": {
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/react": "^16.3.2",
+    "@types/jsdom": "^28.0.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@typescript/native-preview": "latest",
@@ -28,12 +34,15 @@
     "gh-pages": "^6.3.0",
     "html-minifier-terser": "latest",
     "husky": "^9.1.7",
+    "jsdom": "^28.1.0",
     "oxfmt": "latest",
     "oxlint": "latest",
     "oxlint-tsgolint": "latest",
     "purgecss": "latest",
     "sass": "latest",
-    "vite": "latest"
+    "typed-css-modules": "^0.9.1",
+    "vite": "latest",
+    "vitest": "^4.0.18"
   },
   "engines": {
     "node": "^24"

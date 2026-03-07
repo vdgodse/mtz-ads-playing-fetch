@@ -1,3 +1,5 @@
 node_modules/
 dist
 .git-credentials-personal
+*.css.d.ts
+*.scss.d.ts

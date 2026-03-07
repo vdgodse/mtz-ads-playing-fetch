@@ -10,6 +10,7 @@ const root = rootEl;
 
 async function bootstrap() {
   if (import.meta.env.DEV) {
+    await import("./styles/layers.css");
     await import("./styles/critical.css");
   }
 

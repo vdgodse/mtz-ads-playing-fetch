@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { minify as minifyHtml } from "html-minifier-terser";
+import CleanCSS from "clean-css";
 import { createServer } from "vite";
 
 const projectRoot = process.cwd();
@@ -568,7 +569,12 @@ try {
     removeStyleLinkTypeAttributes: true,
     useShortDoctype: true,
     keepClosingSlash: true,
-    minifyCSS: true,
+    minifyCSS: (text) => {
+      // Preserve @layer order declarations that clean-css strips as "empty"
+      const layerOrderDecls = text.match(/@layer\s+[\w\s,]+;/g) || [];
+      const minified = new CleanCSS().minify(text).styles;
+      return layerOrderDecls.join("") + minified;
+    },
     minifyJS: true,
   });
 

@@ -4,134 +4,33 @@ import { TopBar } from "./components/layout/TopBar";
 import { AnimatedBackgroundCanvas } from "./components/layout/AnimatedBackgroundCanvas";
 import { SettingsOverlay } from "./components/settings/SettingsOverlay";
 import { LetterStage } from "./components/stage/LetterStage";
-import { LETTERS } from "./config/constants";
-import { useEscapeKey } from "./hooks/useEscapeKey";
+import { useAudioFeedback } from "./hooks/useAudioFeedback";
+import { useKeydown } from "./hooks/useKeydown";
+import { useFocusWhen } from "./hooks/useFocusWhen";
 import { useRunningLoop } from "./hooks/useRunningLoop";
 import { createInitialState, machineReducer } from "./state/machine";
 import { loadInitialState, resetPersistentStorage } from "./state/storage";
-import { randomFrom } from "./utils/random";
 import { getInitialLetterForRender } from "./utils/initialLetter";
 import styles from "./styles/App.module.css";
 
-const RUNNING_TICK_INTERVAL_S = 0.24;
-
-type WebkitWindow = Window & {
-  webkitAudioContext?: typeof AudioContext;
-};
-
 function App() {
-  const initial = useMemo(() => loadInitialState(), []);
+  const initialState = useMemo(() => loadInitialState(), []);
+  const initialLetter = useMemo(() => getInitialLetterForRender(), []);
 
   const [state, dispatch] = useReducer(
     machineReducer,
-    createInitialState(initial.config, initial.history),
+    createInitialState(initialState.config, initialState.history, initialLetter),
   );
 
-  const [currentLetter, setCurrentLetter] = useState(getInitialLetterForRender);
   const [isEnhancedBackgroundEnabled, setIsEnhancedBackgroundEnabled] = useState(false);
 
   const startButtonRef = useRef<HTMLButtonElement | null>(null);
   const currentLetterRef = useRef<HTMLDivElement | null>(null);
   const previousModeRef = useRef(state.mode);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const lastTickAtRef = useRef(0);
 
-  const ensureAudioContext = () => {
-    if (audioContextRef.current) {
-      return audioContextRef.current;
-    }
-
-    const AudioContextCtor =
-      window.AudioContext ?? (window as WebkitWindow).webkitAudioContext ?? null;
-
-    if (!AudioContextCtor) {
-      return null;
-    }
-
-    audioContextRef.current = new AudioContextCtor();
-    return audioContextRef.current;
-  };
-
-  // oxlint-disable-next-line react-hooks-js/exhaustive-deps - since we are using react compiler
-  const unlockAudioContext = () => {
-    const context = ensureAudioContext();
-    if (!context) {
-      return;
-    }
-
-    if (context.state !== "running") {
-      void context.resume();
-    }
-  };
-
-  const playRunningTick = (letter: string) => {
-    if (!state.context.config.soundEffectsEnabled) {
-      return;
-    }
-
-    const context = ensureAudioContext();
-    if (!context || context.state !== "running") {
-      return;
-    }
-
-    const now = context.currentTime;
-    if (now - lastTickAtRef.current < RUNNING_TICK_INTERVAL_S) {
-      return;
-    }
-
-    lastTickAtRef.current = now;
-
-    const noteSteps = [0, 2, 4, 7, 9] as const;
-    const letterIndex = (letter.charCodeAt(0) - 65 + 26) % 26;
-    const step = noteSteps[letterIndex % noteSteps.length];
-    const octave = Math.floor(letterIndex / noteSteps.length) % 2;
-    const frequency = 880 * 2 ** ((step + octave * 12) / 12);
-
-    const bodyOsc = context.createOscillator();
-    const shimmerOsc = context.createOscillator();
-    const bodyGain = context.createGain();
-    const shimmerGain = context.createGain();
-    const masterGain = context.createGain();
-    const highpass = context.createBiquadFilter();
-
-    bodyOsc.type = "sine";
-    shimmerOsc.type = "triangle";
-    bodyOsc.frequency.setValueAtTime(frequency, now);
-    shimmerOsc.frequency.setValueAtTime(frequency * 2, now);
-
-    highpass.type = "highpass";
-    highpass.frequency.setValueAtTime(780, now);
-    highpass.Q.setValueAtTime(0.7, now);
-
-    bodyGain.gain.setValueAtTime(0.0001, now);
-    bodyGain.gain.exponentialRampToValueAtTime(0.013, now + 0.003);
-    bodyGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.03);
-
-    shimmerGain.gain.setValueAtTime(0.0001, now);
-    shimmerGain.gain.exponentialRampToValueAtTime(0.0045, now + 0.0025);
-    shimmerGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.022);
-
-    masterGain.gain.setValueAtTime(0.9, now);
-
-    bodyOsc.connect(bodyGain);
-    shimmerOsc.connect(shimmerGain);
-    bodyGain.connect(masterGain);
-    shimmerGain.connect(masterGain);
-    masterGain.connect(highpass);
-    highpass.connect(context.destination);
-
-    bodyOsc.start(now);
-    shimmerOsc.start(now);
-    bodyOsc.stop(now + 0.034);
-    shimmerOsc.stop(now + 0.028);
-  };
-
-  // Focus Start button when entering idle mode
-  useEffect(() => {
-    if (state.mode === "idle") {
-      startButtonRef.current?.focus();
-    }
-  }, [state.mode]);
+  const { unlockAudioContext, playRunningTick, speakLetter } = useAudioFeedback({
+    soundEffectsEnabled: state.context.config.soundEffectsEnabled,
+  });
 
   useEffect(() => {
     const wasRunningToIdle = previousModeRef.current === "running" && state.mode === "idle";
@@ -141,18 +40,7 @@ function App() {
       return;
     }
 
-    // oxlint-disable-next-line react-hooks-js/set-state-in-effect
-    setCurrentLetter(state.context.lastFinalLetter);
-
-    if (state.context.config.soundEffectsEnabled && "speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(
-        `${state.context.lastFinalLetter.toLowerCase()}`,
-      );
-      utterance.rate = 1;
-      utterance.pitch = 1.02;
-      window.speechSynthesis.speak(utterance);
-    }
+    speakLetter(state.context.lastFinalLetter.toLowerCase());
 
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       return;
@@ -163,23 +51,25 @@ function App() {
       return;
     }
 
-    glyph.classList.remove(styles.activeLetterGlyphFinalized);
+    const finalizedClass = styles.activeLetterGlyphFinalized;
+
+    glyph.classList.remove(finalizedClass);
 
     const handleFinalizeAnimationEnd = () => {
-      glyph.classList.remove(styles.activeLetterGlyphFinalized);
+      glyph.classList.remove(finalizedClass);
     };
 
     glyph.addEventListener("animationend", handleFinalizeAnimationEnd, { once: true });
 
     const rafId = window.requestAnimationFrame(() => {
-      glyph.classList.add(styles.activeLetterGlyphFinalized);
+      glyph.classList.add(finalizedClass);
     });
 
     return () => {
       window.cancelAnimationFrame(rafId);
       glyph.removeEventListener("animationend", handleFinalizeAnimationEnd);
     };
-  }, [state.mode, state.context.lastFinalLetter, state.context.config.soundEffectsEnabled]);
+  }, [state.mode, state.context.lastFinalLetter, speakLetter]);
 
   // Handle running mode: RAF + timeout
   useRunningLoop({
@@ -191,18 +81,12 @@ function App() {
     onLetterChange: playRunningTick,
   });
 
-  useEffect(() => {
-    if (state.context.config.soundEffectsEnabled) {
-      unlockAudioContext();
-    }
-
-    return () => {
-      window.speechSynthesis?.cancel();
-    };
-  }, [state.context.config.soundEffectsEnabled, unlockAudioContext]);
-
-  // Handle Escape key in settings
-  useEscapeKey(state.mode === "settings", () => dispatch({ type: "CLOSE_SETTINGS" }));
+  useFocusWhen({ when: state.mode === "idle", targetRef: startButtonRef });
+  useKeydown({
+    keys: new Set(["Escape"]),
+    when: state.mode === "settings",
+    onKeydown: () => dispatch({ type: "CLOSE_SETTINGS" }),
+  });
 
   function handleStart() {
     unlockAudioContext();
@@ -224,14 +108,14 @@ function App() {
 
   function handleReset() {
     resetPersistentStorage();
-    setCurrentLetter(randomFrom(LETTERS));
-    dispatch({ type: "RESET" });
+    dispatch({ type: "RESET", letter: getInitialLetterForRender() });
   }
 
   return (
-    <div
-      className={`app-shell ${styles.appShell}${isEnhancedBackgroundEnabled ? ` ${styles.appShellOffscreenBg}` : ""}`}
-    >
+    <div className={`app-shell ${isEnhancedBackgroundEnabled ? styles.appShellFallbackBg : ""}`}>
+      <a href="#main-content" className="skip-to-content">
+        Skip to main content
+      </a>
       <AnimatedBackgroundCanvas onEnhancedModeChange={setIsEnhancedBackgroundEnabled} />
       <TopBar>
         <button
@@ -246,7 +130,7 @@ function App() {
         </button>
       </TopBar>
       <LetterStage
-        currentLetter={currentLetter}
+        currentLetter={state.context.lastFinalLetter}
         isRunning={state.mode === "running"}
         onStart={handleStart}
         startButtonRef={startButtonRef}

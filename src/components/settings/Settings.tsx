@@ -145,15 +145,6 @@ function SettingsContent({ children }: { children: ReactNode }) {
   return <div className={styles.settingsContent}>{children}</div>;
 }
 
-function SettingsFootnote() {
-  return (
-    <div className={styles.settingsFootnote}>
-      Settings are saved to localStorage. Only the <b>final</b> letter is checked against recent
-      history.
-    </div>
-  );
-}
-
 function SettingsResetButton() {
   const { onReset } = useSettingsContext();
 
@@ -177,6 +168,5 @@ export const Settings = {
   Content: SettingsContent,
   NumberInput: SettingsNumberInput,
   ToggleInput: SettingsToggleInput,
-  Footnote: SettingsFootnote,
   ResetButton: SettingsResetButton,
 };
