@@ -3,3 +3,10 @@ dist
 .git-credentials-personal
 *.css.d.ts
 *.scss.d.ts
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+.env*
+!.env.example
