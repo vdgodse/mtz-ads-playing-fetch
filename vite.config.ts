@@ -203,5 +203,5 @@ export default defineConfig({
     injectInitialLetterBootstrapScript(),
     inlineLayersCssIntoHtml(),
   ],
-  base: "/mtz-ads-playing-fetch/",
+  base: process.env.VITE_BASE_URL || "/mtz-ads-playing-fetch/",
 });
