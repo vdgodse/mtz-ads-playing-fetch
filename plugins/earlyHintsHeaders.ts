@@ -96,9 +96,19 @@ export function earlyHintsHeaders(): Plugin {
         // Determine as type and rel for the Link header
         let linkAs: string | undefined = asValue;
         let linkRel = "preload";
+        let crossorigin = false;
 
         if (tagName === "script") {
-          linkAs = "script";
+          const isModule = /type=["']module["']/.test(tag);
+          if (isModule) {
+            // Use modulepreload for ES modules - it also parses/compiles the module
+            linkRel = "modulepreload";
+            linkAs = undefined; // modulepreload doesn't need "as"
+            // Vite adds crossorigin to module scripts, so we must match it
+            crossorigin = true;
+          } else {
+            linkAs = "script";
+          }
         } else if (tagName === "link") {
           if (rel === "stylesheet") {
             linkAs = "style";
@@ -106,10 +116,13 @@ export function earlyHintsHeaders(): Plugin {
             linkRel = "preconnect";
             linkAs = undefined;
           }
+          // Check if the link tag has crossorigin
+          crossorigin = /\bcrossorigin\b/.test(tag);
         }
 
         const asPart = linkAs ? `; as=${linkAs}` : "";
-        linkHeaders.push(`  Link: <${resolvedUrl}>; rel=${linkRel}${asPart}`);
+        const crossoriginPart = crossorigin ? "; crossorigin" : "";
+        linkHeaders.push(`  Link: <${resolvedUrl}>; rel=${linkRel}${asPart}${crossoriginPart}`);
       }
 
       // Dedupe
