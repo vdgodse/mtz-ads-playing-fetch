@@ -100,14 +100,10 @@ export function earlyHintsHeaders(): Plugin {
 
         if (tagName === "script") {
           const isModule = /type=["']module["']/.test(tag);
+          linkAs = "script";
+          // Vite adds crossorigin to module scripts, so we must match it
           if (isModule) {
-            // Use modulepreload for ES modules - it also parses/compiles the module
-            linkRel = "modulepreload";
-            linkAs = undefined; // modulepreload doesn't need "as"
-            // Vite adds crossorigin to module scripts, so we must match it
             crossorigin = true;
-          } else {
-            linkAs = "script";
           }
         } else if (tagName === "link") {
           if (rel === "stylesheet") {
