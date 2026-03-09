@@ -6,6 +6,7 @@ import react from "@vitejs/plugin-react";
 import { PurgeCSS } from "purgecss";
 import { initialLetterBootstrap } from "./src/noImports/initialLetterBootstrap";
 import { HISTORY_STORAGE_KEY } from "./src/config/constants";
+import { cloudflare } from "@cloudflare/vite-plugin";
 
 async function collectFilesRecursive(dirPath: string, matcher: RegExp): Promise<string[]> {
   const entries = await fs.readdir(dirPath, { withFileTypes: true });
@@ -202,6 +203,7 @@ export default defineConfig({
     purgeStylesheets(),
     injectInitialLetterBootstrapScript(),
     inlineLayersCssIntoHtml(),
+    cloudflare(),
   ],
   base: process.env.VITE_BASE_URL || "/mtz-ads-playing-fetch/",
 });
