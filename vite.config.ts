@@ -6,6 +6,7 @@ import react from "@vitejs/plugin-react";
 import { PurgeCSS } from "purgecss";
 import { initialLetterBootstrap } from "./src/noImports/initialLetterBootstrap";
 import { HISTORY_STORAGE_KEY } from "./src/config/constants";
+import { earlyHintsHeaders } from "./plugins/earlyHintsHeaders";
 import { cloudflare } from "@cloudflare/vite-plugin";
 
 async function collectFilesRecursive(dirPath: string, matcher: RegExp): Promise<string[]> {
@@ -199,6 +200,7 @@ export default defineConfig({
         plugins: ["babel-plugin-react-compiler"],
       },
     }),
+    earlyHintsHeaders(),
     inlineCriticalCssIntoHtml(),
     purgeStylesheets(),
     injectInitialLetterBootstrapScript(),
