@@ -13,6 +13,32 @@ import { loadInitialState, resetPersistentStorage } from "./state/storage";
 import { getInitialLetterForRender } from "./utils/initialLetter";
 import styles from "./styles/App.module.css";
 
+const FINALIZED_POP_KEYFRAMES: Keyframe[] = [
+  {
+    transform: "translateY(0) scale(1)",
+    filter: "brightness(1) drop-shadow(0 0 0 rgba(130, 156, 255, 0))",
+  },
+  {
+    transform: "translateY(-8px) scale(1.05)",
+    filter: "brightness(1.15) drop-shadow(0 4px 24px rgba(130, 156, 255, 0.5))",
+    offset: 0.3,
+  },
+  {
+    transform: "translateY(2px) scale(0.98)",
+    filter: "brightness(1.05) drop-shadow(0 2px 12px rgba(130, 156, 255, 0.25))",
+    offset: 0.6,
+  },
+  {
+    transform: "translateY(0) scale(1)",
+    filter: "brightness(1) drop-shadow(0 0 0 rgba(130, 156, 255, 0))",
+  },
+];
+
+const FINALIZED_POP_OPTIONS: KeyframeAnimationOptions = {
+  duration: 520,
+  easing: "cubic-bezier(0.22, 0.68, 0.35, 1.2)",
+};
+
 function App() {
   const initialState = useMemo(() => loadInitialState(), []);
   const initialLetter = useMemo(() => getInitialLetterForRender(), []);
@@ -51,24 +77,9 @@ function App() {
       return;
     }
 
-    const finalizedClass = styles.activeLetterGlyphFinalized;
+    const animation = glyph.animate(FINALIZED_POP_KEYFRAMES, FINALIZED_POP_OPTIONS);
 
-    glyph.classList.remove(finalizedClass);
-
-    const handleFinalizeAnimationEnd = () => {
-      glyph.classList.remove(finalizedClass);
-    };
-
-    glyph.addEventListener("animationend", handleFinalizeAnimationEnd, { once: true });
-
-    const rafId = window.requestAnimationFrame(() => {
-      glyph.classList.add(finalizedClass);
-    });
-
-    return () => {
-      window.cancelAnimationFrame(rafId);
-      glyph.removeEventListener("animationend", handleFinalizeAnimationEnd);
-    };
+    return () => animation.cancel();
   }, [state.mode, state.context.lastFinalLetter, speakLetter]);
 
   // Handle running mode: RAF + timeout
