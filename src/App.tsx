@@ -17,16 +17,19 @@ const FINALIZED_POP_KEYFRAMES: Keyframe[] = [
   {
     transform: "translateY(0) scale(1)",
     filter: "brightness(1) drop-shadow(0 0 0 rgba(130, 156, 255, 0))",
+    easing: "cubic-bezier(0.22, 0.68, 0.35, 1.15)",
   },
   {
-    transform: "translateY(-8px) scale(1.05)",
-    filter: "brightness(1.15) drop-shadow(0 4px 24px rgba(130, 156, 255, 0.5))",
-    offset: 0.3,
+    transform: "translateY(-8px) scale(1.06)",
+    filter: "brightness(1.2) drop-shadow(0 4px 24px rgba(130, 156, 255, 0.5))",
+    offset: 0.2,
+    easing: "cubic-bezier(0.25, 0.1, 0.25, 1)",
   },
   {
     transform: "translateY(2px) scale(0.98)",
-    filter: "brightness(1.05) drop-shadow(0 2px 12px rgba(130, 156, 255, 0.25))",
-    offset: 0.6,
+    filter: "brightness(1.03) drop-shadow(0 1px 6px rgba(130, 156, 255, 0.12))",
+    offset: 0.5,
+    easing: "cubic-bezier(0.25, 0.1, 0.25, 1)",
   },
   {
     transform: "translateY(0) scale(1)",
@@ -35,8 +38,7 @@ const FINALIZED_POP_KEYFRAMES: Keyframe[] = [
 ];
 
 const FINALIZED_POP_OPTIONS: KeyframeAnimationOptions = {
-  duration: 520,
-  easing: "cubic-bezier(0.22, 0.68, 0.35, 1.2)",
+  duration: 1200,
 };
 
 function App() {
